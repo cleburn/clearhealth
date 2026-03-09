@@ -1,0 +1,200 @@
+# ==============================================================================
+# ClearHealth — Continuous Integration
+# ==============================================================================
+# Runs on pull requests to main and staging branches.
+# Validates code quality, type safety, tests, security, and PII compliance.
+# ==============================================================================
+
+name: CI
+
+on:
+  pull_request:
+    branches: [main, staging]
+  push:
+    branches: [staging]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  lint:
+    name: Lint & Format
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Check formatting
+        run: npx prettier --check "packages/*/src/**/*.{ts,tsx}"
+
+  typecheck:
+    name: Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run TypeScript compiler
+        run: npm run typecheck
+
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: clearhealth_test
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: clearhealth_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U clearhealth_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://clearhealth_test:test_password@localhost:5432/clearhealth_test
+      REDIS_URL: redis://localhost:6379
+      JWT_SECRET: ci-test-jwt-secret
+      JWT_REFRESH_SECRET: ci-test-refresh-secret
+      ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      NODE_ENV: test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Run database migrations
+        run: npx prisma migrate deploy
+
+      - name: Run tests (all packages)
+        run: npm run test
+
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run npm audit
+        run: npm audit --audit-level=high
+        continue-on-error: false
+
+  pii-check:
+    name: PII Pattern Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check for hardcoded PII patterns in source files
+        run: |
+          echo "Scanning for potential PII patterns in source files..."
+
+          # Check for SSN patterns (XXX-XX-XXXX with real-looking numbers)
+          SSN_MATCHES=$(grep -rn '\b[0-9]\{3\}-[0-9]\{2\}-[0-9]\{4\}\b' \
+            --include="*.ts" --include="*.tsx" --include="*.js" \
+            --exclude-dir=node_modules \
+            --exclude-dir=tests \
+            --exclude-dir=__tests__ \
+            --exclude="*.test.*" \
+            --exclude="*.spec.*" \
+            --exclude="validators.ts" \
+            --exclude="pii-guard.ts" \
+            . || true)
+
+          if [ -n "$SSN_MATCHES" ]; then
+            echo "::error::Potential SSN patterns found in source files:"
+            echo "$SSN_MATCHES"
+            echo ""
+            echo "If these are regex patterns for validation/detection, add the file to exclusions."
+            echo "If these are real SSNs, remove them immediately."
+            exit 1
+          fi
+
+          # Check for hardcoded secrets patterns
+          SECRET_MATCHES=$(grep -rn \
+            -e 'password\s*=\s*"[^"]\{8,\}"' \
+            -e 'secret\s*=\s*"[^"]\{8,\}"' \
+            -e 'api_key\s*=\s*"[^"]\{8,\}"' \
+            --include="*.ts" --include="*.tsx" --include="*.js" \
+            --exclude-dir=node_modules \
+            --exclude-dir=tests \
+            --exclude-dir=__tests__ \
+            --exclude="*.test.*" \
+            --exclude="*.spec.*" \
+            --exclude=".env.example" \
+            . || true)
+
+          if [ -n "$SECRET_MATCHES" ]; then
+            echo "::warning::Potential hardcoded secrets found:"
+            echo "$SECRET_MATCHES"
+          fi
+
+          echo "PII pattern check passed."
+
+  # Gate — all checks must pass before merge
+  ci-gate:
+    name: CI Gate
+    needs: [lint, typecheck, test, security-audit, pii-check]
+    runs-on: ubuntu-latest
+    steps:
+      - name: All checks passed
+        run: echo "All CI checks passed. PR is ready for review."

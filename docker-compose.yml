@@ -1,0 +1,85 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: clearhealth-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: clearhealth
+      POSTGRES_PASSWORD: clearhealth_dev
+      POSTGRES_DB: clearhealth
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U clearhealth"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: clearhealth-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+    container_name: clearhealth-api
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      DATABASE_URL: postgresql://clearhealth:clearhealth_dev@postgres:5432/clearhealth
+      REDIS_URL: redis://redis:6379
+      NODE_ENV: development
+      PORT: "3001"
+      FRONTEND_URL: http://localhost:3000
+      CORS_ORIGINS: http://localhost:3000
+      JWT_SECRET: dev-jwt-secret-do-not-use-in-production
+      JWT_REFRESH_SECRET: dev-refresh-secret-do-not-use-in-production
+      ENCRYPTION_KEY: dev-encryption-key-do-not-use-in-production
+      AUDIT_LOG_ENABLED: "true"
+      LOG_LEVEL: debug
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./packages/api/src:/app/packages/api/src
+      - ./packages/shared/src:/app/packages/shared/src
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+    container_name: clearhealth-web
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:3001/api/v1
+      NODE_ENV: development
+    depends_on:
+      - api
+    volumes:
+      - ./packages/web/src:/app/packages/web/src
+
+volumes:
+  postgres_data:
+  redis_data:

@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "outDir": "./dist",
+    "rootDir": ".",
+    "baseUrl": ".",
+    "paths": {
+      "@clearhealth/shared": ["packages/shared/src"],
+      "@clearhealth/shared/*": ["packages/shared/src/*"],
+      "@clearhealth/api": ["packages/api/src"],
+      "@clearhealth/api/*": ["packages/api/src/*"],
+      "@clearhealth/web": ["packages/web/src"],
+      "@clearhealth/web/*": ["packages/web/src/*"]
+    }
+  },
+  "exclude": ["node_modules", "dist", ".next", "coverage"]
+}

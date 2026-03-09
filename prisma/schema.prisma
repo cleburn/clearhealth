@@ -1,0 +1,259 @@
+// ==============================================================================
+// ClearHealth — Prisma Schema
+// ==============================================================================
+// Multi-tenant healthcare appointment management platform.
+// This schema defines the core data model including patients, doctors,
+// appointments, billing, and audit logging.
+//
+// SECURITY NOTES:
+// - Patient.ssn is encrypted at the application layer (AES-256-GCM)
+// - All PII fields are marked with @encrypted or @pii comments
+// - AuditLog captures every access to patient data for HIPAA compliance
+// - Soft deletes are used where HIPAA requires record retention
+// ==============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// --- Tenant (multi-tenancy) ---
+
+model Tenant {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  settings  Json     @default("{}")
+  createdAt DateTime @default(now())
+
+  users          User[]
+  appointments   Appointment[]
+  billingRecords BillingRecord[]
+  auditLogs      AuditLog[]
+
+  @@map("tenants")
+}
+
+// --- User ---
+
+enum UserRole {
+  PATIENT
+  DOCTOR
+  ADMIN
+  SUPER_ADMIN
+}
+
+model User {
+  id           String    @id @default(uuid())
+  tenantId     String
+  email        String
+  passwordHash String    /// @sensitive — bcrypt hash, never exposed in API responses
+  role         UserRole
+  firstName    String
+  lastName     String
+  phone        String?   /// @pii — Patient phone numbers are considered PII
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  lastLoginAt  DateTime?
+  isActive     Boolean   @default(true)
+
+  tenant    Tenant     @relation(fields: [tenantId], references: [id])
+  patient   Patient?
+  doctor    Doctor?
+  auditLogs AuditLog[]
+
+  @@unique([tenantId, email])
+  @@index([tenantId])
+  @@index([email])
+  @@index([role])
+  @@map("users")
+}
+
+// --- Patient ---
+
+model Patient {
+  id                    String   @id @default(uuid())
+  userId                String   @unique
+  dateOfBirth           DateTime /// @pii — Date of birth is PII under HIPAA
+  ssn                   String   /// @encrypted — Contains PII, encrypted at rest with AES-256-GCM. Never return raw value in API responses.
+  insuranceId           String?  /// @pii — Insurance member ID
+  insurancePlan         String?
+  medicalRecordNumber   String   @unique /// Internal MRN for cross-referencing
+  emergencyContactName  String?  /// @pii
+  emergencyContactPhone String?  /// @pii
+  notes                 String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  user                   User                    @relation(fields: [userId], references: [id])
+  appointments           Appointment[]
+  billingRecords         BillingRecord[]
+  insuranceVerifications InsuranceVerification[]
+
+  @@index([medicalRecordNumber])
+  @@index([insuranceId])
+  @@map("patients")
+}
+
+// --- Doctor ---
+
+model Doctor {
+  id             String @id @default(uuid())
+  userId         String @unique
+  specialization String
+  licenseNumber  String @unique /// Medical license number — verified during onboarding
+  scheduleConfig Json   @default("{}") /// Weekly schedule template: { dayOfWeek: { start, end, slotDuration } }
+
+  user         User          @relation(fields: [userId], references: [id])
+  appointments Appointment[]
+  visitNotes   VisitNote[]
+
+  @@index([specialization])
+  @@map("doctors")
+}
+
+// --- Appointment ---
+
+enum AppointmentStatus {
+  SCHEDULED
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum AppointmentType {
+  INITIAL
+  FOLLOW_UP
+  URGENT
+  TELEHEALTH
+}
+
+model Appointment {
+  id          String            @id @default(uuid())
+  tenantId    String
+  patientId   String
+  doctorId    String
+  scheduledAt DateTime
+  duration    Int               /// Duration in minutes
+  status      AppointmentStatus @default(SCHEDULED)
+  type        AppointmentType
+  notes       String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  tenant        Tenant         @relation(fields: [tenantId], references: [id])
+  patient       Patient        @relation(fields: [patientId], references: [id])
+  doctor        Doctor         @relation(fields: [doctorId], references: [id])
+  visitNote     VisitNote?
+  billingRecord BillingRecord?
+
+  @@index([tenantId])
+  @@index([patientId])
+  @@index([doctorId])
+  @@index([scheduledAt])
+  @@index([status])
+  @@map("appointments")
+}
+
+// --- Visit Note (SOAP format) ---
+
+model VisitNote {
+  id            String    @id @default(uuid())
+  appointmentId String    @unique
+  doctorId      String
+  subjective    String    /// Patient's reported symptoms and concerns
+  objective     String    /// Doctor's clinical observations and measurements
+  assessment    String    /// Diagnosis and clinical assessment
+  plan          String    /// Treatment plan and follow-up instructions
+  isSigned      Boolean   @default(false) /// Signed notes are legally binding and immutable
+  signedAt      DateTime?
+  createdAt     DateTime  @default(now())
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id])
+  doctor      Doctor      @relation(fields: [doctorId], references: [id])
+
+  @@index([doctorId])
+  @@map("visit_notes")
+}
+
+// --- Billing ---
+
+enum BillingStatus {
+  PENDING
+  SUBMITTED
+  APPROVED
+  DENIED
+  PAID
+}
+
+model BillingRecord {
+  id             String        @id @default(uuid())
+  tenantId       String
+  appointmentId  String        @unique
+  patientId      String
+  insuranceClaim Json?         /// Full claim payload sent to insurance provider
+  amount         Decimal       @db.Decimal(10, 2)
+  status         BillingStatus @default(PENDING)
+  cptCodes       String[]      /// CPT procedure codes
+  icdCodes       String[]      /// ICD-10 diagnosis codes
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  tenant      Tenant      @relation(fields: [tenantId], references: [id])
+  appointment Appointment @relation(fields: [appointmentId], references: [id])
+  patient     Patient     @relation(fields: [patientId], references: [id])
+
+  @@index([tenantId])
+  @@index([patientId])
+  @@index([status])
+  @@map("billing_records")
+}
+
+// --- Audit Log ---
+// HIPAA requires access logging for all patient data.
+// Every read, write, and delete operation on patient-related resources
+// must be captured with the acting user, timestamp, and IP address.
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  tenantId   String
+  userId     String
+  action     String   /// e.g., "READ", "CREATE", "UPDATE", "DELETE", "LOGIN", "EXPORT"
+  resource   String   /// e.g., "patient", "appointment", "billing", "visit_note"
+  resourceId String?  /// ID of the affected resource
+  metadata   Json?    /// Additional context (e.g., fields accessed, query parameters)
+  ipAddress  String   /// Client IP address for access tracking
+  timestamp  DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@index([tenantId])
+  @@index([userId])
+  @@index([resource, resourceId])
+  @@index([timestamp])
+  @@map("audit_logs")
+}
+
+// --- Insurance Verification ---
+
+model InsuranceVerification {
+  id         String   @id @default(uuid())
+  patientId  String
+  verifiedAt DateTime @default(now())
+  status     String   /// e.g., "ACTIVE", "INACTIVE", "PENDING", "EXPIRED"
+  response   Json     /// Raw response from insurance verification API
+  expiresAt  DateTime /// Verification validity window
+
+  patient Patient @relation(fields: [patientId], references: [id])
+
+  @@index([patientId])
+  @@index([expiresAt])
+  @@map("insurance_verifications")
+}

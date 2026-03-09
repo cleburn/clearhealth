@@ -1,0 +1,158 @@
+# ==============================================================================
+# ClearHealth — Deployment Pipeline
+# ==============================================================================
+# Triggered on push to main branch.
+# Builds Docker image, pushes to ECR, deploys to ECS, and runs health checks.
+# ==============================================================================
+
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY: clearhealth-api
+  ECS_CLUSTER: clearhealth-prod
+  ECS_SERVICE: clearhealth-prod-api
+  ECS_TASK_DEFINITION: clearhealth-prod-api
+
+jobs:
+  build-and-push:
+    name: Build & Push Docker Image
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.meta.outputs.tags }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Extract metadata
+        id: meta
+        run: |
+          SHA_SHORT=$(git rev-parse --short HEAD)
+          TIMESTAMP=$(date +%Y%m%d%H%M%S)
+          IMAGE_TAG="${TIMESTAMP}-${SHA_SHORT}"
+          echo "tags=${{ steps.ecr-login.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${IMAGE_TAG}" >> "$GITHUB_OUTPUT"
+          echo "tag=${IMAGE_TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            --target runner \
+            --tag ${{ steps.meta.outputs.tags }} \
+            --tag ${{ steps.ecr-login.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest \
+            .
+
+      - name: Push to ECR
+        run: |
+          docker push ${{ steps.meta.outputs.tags }}
+          docker push ${{ steps.ecr-login.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
+
+  deploy:
+    name: Deploy to ECS
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    environment: production
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Download current task definition
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition ${{ env.ECS_TASK_DEFINITION }} \
+            --query taskDefinition > task-definition.json
+
+      - name: Update task definition with new image
+        id: update-task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-definition.json
+          container-name: api
+          image: ${{ needs.build-and-push.outputs.image_tag }}
+
+      - name: Deploy to ECS
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.update-task-def.outputs.task-definition }}
+          service: ${{ env.ECS_SERVICE }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
+
+  health-check:
+    name: Post-Deploy Health Check
+    runs-on: ubuntu-latest
+    needs: deploy
+
+    steps:
+      - name: Wait for deployment to stabilize
+        run: sleep 30
+
+      - name: Run health check
+        run: |
+          MAX_RETRIES=5
+          RETRY_DELAY=10
+
+          for i in $(seq 1 $MAX_RETRIES); do
+            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+              "https://${{ secrets.API_DOMAIN }}/health" || echo "000")
+
+            if [ "$HTTP_STATUS" = "200" ]; then
+              echo "Health check passed (attempt $i/$MAX_RETRIES)"
+              exit 0
+            fi
+
+            echo "Health check failed with status $HTTP_STATUS (attempt $i/$MAX_RETRIES)"
+            if [ "$i" -lt "$MAX_RETRIES" ]; then
+              sleep $RETRY_DELAY
+            fi
+          done
+
+          echo "::error::Health check failed after $MAX_RETRIES attempts"
+          exit 1
+
+  notify:
+    name: Notify Team
+    runs-on: ubuntu-latest
+    needs: [build-and-push, deploy, health-check]
+    if: always()
+
+    steps:
+      - name: Notify on success
+        if: needs.health-check.result == 'success'
+        run: |
+          echo "Deployment successful!"
+          # TODO: implement — Send Slack notification
+          # curl -X POST "${{ secrets.SLACK_WEBHOOK_URL }}" \
+          #   -H "Content-Type: application/json" \
+          #   -d '{"text": "ClearHealth deployed successfully to production."}'
+
+      - name: Notify on failure
+        if: needs.health-check.result == 'failure' || needs.deploy.result == 'failure'
+        run: |
+          echo "::error::Deployment failed!"
+          # TODO: implement — Send Slack alert
+          # curl -X POST "${{ secrets.SLACK_WEBHOOK_URL }}" \
+          #   -H "Content-Type: application/json" \
+          #   -d '{"text": "ALERT: ClearHealth deployment FAILED. Check GitHub Actions for details."}'

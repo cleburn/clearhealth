@@ -1,0 +1,18 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "declaration": true,
+    "composite": true,
+    "paths": {
+      "@clearhealth/shared": ["../shared/src"],
+      "@clearhealth/shared/*": ["../shared/src/*"]
+    }
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist", "tests"],
+  "references": [
+    { "path": "../shared" }
+  ]
+}

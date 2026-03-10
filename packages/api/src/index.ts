@@ -24,6 +24,8 @@ import { appointmentRoutes } from './routes/appointments';
 import { billingRoutes } from './routes/billing';
 import { authRoutes } from './routes/auth';
 import { logger } from './utils/logger';
+import { prisma } from './lib/prisma';
+import { redis } from './lib/redis';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -69,14 +71,43 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 });
 
 // --- Start server ---
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   logger.info(`ClearHealth API running on port ${PORT}`, {
     environment: process.env.NODE_ENV,
     port: PORT,
   });
 });
 
-// TODO: implement graceful shutdown
-// Handle SIGTERM/SIGINT: close HTTP server, disconnect Prisma, close Redis connections
+// --- Graceful shutdown ---
+async function gracefulShutdown(signal: string): Promise<void> {
+  logger.info(`Received ${signal}. Starting graceful shutdown...`);
+
+  // Stop accepting new connections
+  server.close(() => {
+    logger.info('HTTP server closed');
+  });
+
+  try {
+    // Disconnect Prisma
+    await prisma.$disconnect();
+    logger.info('Prisma disconnected');
+  } catch (err) {
+    logger.error('Error disconnecting Prisma', { error: (err as Error).message });
+  }
+
+  try {
+    // Close Redis connection
+    await redis.quit();
+    logger.info('Redis connection closed');
+  } catch (err) {
+    logger.error('Error closing Redis', { error: (err as Error).message });
+  }
+
+  logger.info('Graceful shutdown complete');
+  process.exit(0);
+}
+
+process.on('SIGTERM', () => { gracefulShutdown('SIGTERM'); });
+process.on('SIGINT', () => { gracefulShutdown('SIGINT'); });
 
 export default app;

@@ -13,6 +13,8 @@
 
 // NEVER log patient names, SSNs, DOBs, or insurance IDs. Use patient.id for correlation.
 
+import winston from 'winston';
+
 /** PII patterns to redact from log output */
 const PII_PATTERNS: Array<{ pattern: RegExp; replacement: string }> = [
   { pattern: /\b\d{3}-\d{2}-\d{4}\b/g, replacement: '[SSN-REDACTED]' },
@@ -26,10 +28,31 @@ const PII_PATTERNS: Array<{ pattern: RegExp; replacement: string }> = [
  * Applied automatically to all log messages and metadata.
  */
 function redactPII(message: string): string {
-  // TODO: implement
-  // - Apply each PII_PATTERNS regex replacement
-  // - Return sanitized string
-  return message;
+  let result = message;
+  for (const { pattern, replacement } of PII_PATTERNS) {
+    result = result.replace(new RegExp(pattern.source, pattern.flags), replacement);
+  }
+  return result;
+}
+
+/**
+ * Recursively redact PII from log metadata objects.
+ */
+function redactObject(obj: unknown): unknown {
+  if (typeof obj === 'string') {
+    return redactPII(obj);
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(redactObject);
+  }
+  if (obj !== null && typeof obj === 'object') {
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+      result[key] = redactObject(value);
+    }
+    return result;
+  }
+  return obj;
 }
 
 /** Log levels supported by the logger */
@@ -53,22 +76,81 @@ interface Logger {
  * @returns Configured logger instance
  */
 function createLogger(): Logger {
-  // TODO: implement
-  // - Configure Winston with:
-  //   - JSON format in production
-  //   - Pretty print in development
-  //   - PII redaction format applied to all transports
-  //   - Custom 'audit' log level for compliance entries
-  //   - Console transport (+ file transport in production)
-  // - Log level from LOG_LEVEL env var (default: 'info')
+  const isProduction = process.env.NODE_ENV === 'production';
+  const logLevel = process.env.LOG_LEVEL || 'info';
 
-  const noop = () => {};
+  const customLevels = {
+    levels: {
+      error: 0,
+      warn: 1,
+      audit: 2,
+      info: 3,
+      debug: 4,
+    },
+    colors: {
+      error: 'red',
+      warn: 'yellow',
+      audit: 'magenta',
+      info: 'green',
+      debug: 'blue',
+    },
+  };
+
+  winston.addColors(customLevels.colors);
+
+  const piiRedactionFormat = winston.format((info) => {
+    info.message = redactPII(String(info.message));
+    // Redact all other fields
+    for (const key of Object.keys(info)) {
+      if (key !== 'level' && key !== 'message' && key !== 'timestamp') {
+        info[key] = redactObject(info[key]);
+      }
+    }
+    return info;
+  });
+
+  const formats = [
+    winston.format.timestamp(),
+    piiRedactionFormat(),
+  ];
+
+  if (isProduction) {
+    formats.push(winston.format.json());
+  } else {
+    formats.push(
+      winston.format.colorize(),
+      winston.format.printf(({ timestamp, level, message, ...meta }) => {
+        const metaStr = Object.keys(meta).length > 0 ? ` ${JSON.stringify(meta)}` : '';
+        return `${String(timestamp)} [${level}]: ${String(message)}${metaStr}`;
+      }),
+    );
+  }
+
+  const transports: winston.transport[] = [
+    new winston.transports.Console(),
+  ];
+
+  if (isProduction) {
+    transports.push(
+      new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
+      new winston.transports.File({ filename: 'logs/audit.log', level: 'audit' }),
+      new winston.transports.File({ filename: 'logs/combined.log' }),
+    );
+  }
+
+  const winstonLogger = winston.createLogger({
+    levels: customLevels.levels,
+    level: logLevel,
+    format: winston.format.combine(...formats),
+    transports,
+  });
+
   return {
-    error: noop,
-    warn: noop,
-    info: noop,
-    debug: noop,
-    audit: noop,
+    error: (message: string, meta?: Record<string, unknown>) => winstonLogger.error(message, meta),
+    warn: (message: string, meta?: Record<string, unknown>) => winstonLogger.warn(message, meta),
+    info: (message: string, meta?: Record<string, unknown>) => winstonLogger.info(message, meta),
+    debug: (message: string, meta?: Record<string, unknown>) => winstonLogger.debug(message, meta),
+    audit: (message: string, meta?: Record<string, unknown>) => winstonLogger.log('audit', message, meta),
   };
 }
 

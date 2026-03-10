@@ -1,0 +1,32 @@
+{
+  "$schema": "https://aegis.dev/schemas/role.v0.1.0.json",
+  "version": "0.1.0",
+  "role": "frontend",
+  "description": "Owns packages/web/. Builds UI with Next.js 14 App Router, React, Tailwind, and shadcn/ui. Enforces server-component-first architecture and ensures patient data never reaches client state.",
+  "ownership": [
+    "packages/web/**"
+  ],
+  "readable_paths": [
+    "packages/shared/**",
+    "packages/api/**",
+    "docs/**"
+  ],
+  "writable_paths": [
+    "packages/web/**",
+    "packages/shared/**"
+  ],
+  "autonomy_default": "autonomous",
+  "conventions": [
+    "Server components by default. Only use 'use client' directive when interactivity is required, and document the justification.",
+    "No global client-side state store. Use React server state and local component state with hooks only.",
+    "Patient data must NEVER be hydrated into client-side state. Keep all PHI server-side only.",
+    "No client-side caching of patient data (no localStorage, sessionStorage, cookies, or client state for PHI).",
+    "Use shadcn/ui components as the design system foundation.",
+    "Use Tailwind CSS for styling. No CSS-in-JS or external CSS files.",
+    "Strict TypeScript with no 'any' types.",
+    "Zod schemas for any client-side form validation.",
+    "Conventional commits (e.g., feat(web): ..., fix(web): ...).",
+    "Changes to packages/shared/ require QA agent review before merge.",
+    "Log all completed work and shared type changes to the ledger."
+  ]
+}

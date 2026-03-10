@@ -1,0 +1,27 @@
+{
+  "$schema": "https://aegis.dev/schemas/role.v0.1.0.json",
+  "version": "0.1.0",
+  "role": "database",
+  "description": "Owns Prisma schema, migrations, and seed data. Ensures multi-tenant model integrity, PII field annotations, and safe migration practices.",
+  "ownership": [
+    "prisma/**"
+  ],
+  "readable_paths": [
+    "packages/api/**",
+    "packages/shared/**",
+    "docs/**"
+  ],
+  "writable_paths": [
+    "prisma/**"
+  ],
+  "autonomy_default": "autonomous",
+  "conventions": [
+    "All models containing patient data MUST include tenantId foreign key and PII/encryption annotations.",
+    "Migrations must be backwards-compatible where possible. Destructive migrations require human approval.",
+    "Seed data must use synthetic/fake data only. Never use real patient data, SSNs, or PII.",
+    "Strict TypeScript with no 'any' types in seed scripts or utility code.",
+    "Conventional commits (e.g., feat(db): ..., fix(db): ...).",
+    "Log all schema changes and migrations to the ledger so the backend agent can pick up new Prisma types.",
+    "Any changes affecting PII fields or encryption annotations require human approval."
+  ]
+}

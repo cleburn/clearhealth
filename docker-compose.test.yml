@@ -1,0 +1,43 @@
+version: "3.8"
+
+# ==============================================================================
+# ClearHealth — Test Environment
+# ==============================================================================
+# Provides isolated database and Redis for running integration tests locally.
+#
+# Usage:
+#   docker compose -f docker-compose.test.yml up -d
+#   npm run test
+#   docker compose -f docker-compose.test.yml down -v
+# ==============================================================================
+
+services:
+  postgres-test:
+    image: postgres:15-alpine
+    container_name: clearhealth-postgres-test
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: clearhealth_test
+      POSTGRES_PASSWORD: test_password
+      POSTGRES_DB: clearhealth_test
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U clearhealth_test"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  redis-test:
+    image: redis:7-alpine
+    container_name: clearhealth-redis-test
+    ports:
+      - "6380:6379"
+    tmpfs:
+      - /data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5

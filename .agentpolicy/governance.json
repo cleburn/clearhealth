@@ -1,0 +1,142 @@
+{
+  "$schema": "https://aegis.dev/schemas/governance.v0.1.0.json",
+  "version": "0.1.0",
+  "autonomy": {
+    "domains": [
+      {
+        "name": "own_scope_feature_work",
+        "description": "Feature development and bug fixes within an agent's owned paths that do not touch security-sensitive areas",
+        "level": "autonomous",
+        "conditions": [
+          "Change is within the agent's owned file paths",
+          "Change does not touch auth, encryption, PII handling, or patient data logic",
+          "All CI checks pass (lint, typecheck, tests, security audit, PII scan)"
+        ]
+      },
+      {
+        "name": "documentation_updates",
+        "description": "Updating documentation, README, inline comments",
+        "level": "autonomous",
+        "conditions": [
+          "No PII or secrets introduced",
+          "CI passes"
+        ]
+      },
+      {
+        "name": "test_additions",
+        "description": "Adding or updating tests within owned scope",
+        "level": "autonomous",
+        "conditions": [
+          "No real PII data in test fixtures (use synthetic data only)",
+          "CI passes"
+        ]
+      },
+      {
+        "name": "routine_refactoring",
+        "description": "Refactoring within owned paths that does not change public interfaces or touch sensitive areas",
+        "level": "autonomous",
+        "conditions": [
+          "Change is within the agent's owned file paths",
+          "Public interfaces unchanged",
+          "CI passes"
+        ]
+      },
+      {
+        "name": "shared_types",
+        "description": "Changes to packages/shared/ (the contract layer between frontend and backend)",
+        "level": "advisory",
+        "conditions": [
+          "Only frontend or backend agents may write",
+          "QA agent must review before merge"
+        ]
+      },
+      {
+        "name": "cross_boundary_work",
+        "description": "Changes that span multiple packages or affect another agent's scope",
+        "level": "advisory",
+        "conditions": [
+          "QA agent must review before merge"
+        ]
+      },
+      {
+        "name": "patient_data",
+        "description": "Any code that accesses, transforms, stores, or transmits patient data or PHI",
+        "level": "ask",
+        "conditions": [
+          "Requires explicit human approval before execution"
+        ]
+      },
+      {
+        "name": "authentication_and_authorization",
+        "description": "Changes to auth.ts, session management, role-based access, JWT handling",
+        "level": "ask",
+        "conditions": [
+          "Requires explicit human approval before execution"
+        ]
+      },
+      {
+        "name": "encryption",
+        "description": "Changes to encryption.ts, key management, data-at-rest or data-in-transit encryption",
+        "level": "ask",
+        "conditions": [
+          "Requires explicit human approval before execution"
+        ]
+      },
+      {
+        "name": "pii_handling",
+        "description": "Changes to pii-guard.ts, PII detection, PII scrubbing logic",
+        "level": "ask",
+        "conditions": [
+          "Requires explicit human approval before execution"
+        ]
+      },
+      {
+        "name": "infrastructure",
+        "description": "Terraform, CI/CD pipelines, Dockerfiles, docker-compose, deployment configs",
+        "level": "ask",
+        "conditions": [
+          "Requires explicit human approval before execution"
+        ]
+      }
+    ],
+    "escalation": {
+      "security_ambiguity": "If there is any doubt about whether a change is security-sensitive, treat it as security-sensitive and escalate to a human. Never make an autonomous judgment call on security boundaries.",
+      "code_quality_disputes": "Escalate to the QA agent for code quality and convention disputes.",
+      "default": "When in doubt, escalate to human. Over-asking is always preferred over autonomous action on anything that could affect patient data."
+    }
+  },
+  "quality_gate": {
+    "required_checks": [
+      {
+        "name": "lint",
+        "description": "ESLint must pass with zero errors"
+      },
+      {
+        "name": "typecheck",
+        "description": "TypeScript strict mode compilation must pass with zero errors"
+      },
+      {
+        "name": "tests",
+        "description": "Full Vitest test suite must pass"
+      },
+      {
+        "name": "security_audit",
+        "description": "Security audit must pass with no critical or high vulnerabilities"
+      },
+      {
+        "name": "pii_scan",
+        "description": "PII pattern scanner must pass with zero detections in source files"
+      }
+    ],
+    "additional_rules": [
+      "New API endpoints must include test coverage (Vitest + Supertest)",
+      "Changes to public interfaces must include documentation updates",
+      "All five checks must pass before any change can be merged (mirrors ci-gate job)"
+    ]
+  },
+  "communication": {
+    "protocol": "ledger-based",
+    "description": "The ledger is the sole communication bus between agents. No direct agent-to-agent communication. Agents log changes to the ledger; other agents read the ledger to discover relevant updates and act on them.",
+    "handoff_process": "When an agent completes work that affects another agent's scope (e.g., backend updates shared types or adds a new endpoint), it logs the change in the ledger with sufficient detail for the consuming agent to act."
+  }
+}

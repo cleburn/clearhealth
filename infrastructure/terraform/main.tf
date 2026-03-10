@@ -410,6 +410,81 @@ resource "aws_kms_key" "documents" {
   }
 }
 
+resource "aws_kms_alias" "documents" {
+  name          = "alias/clearhealth-${var.environment}-documents"
+  target_key_id = aws_kms_key.documents.key_id
+}
+
+# ==============================================================================
+# KMS — Application-level encryption key management
+# ==============================================================================
+# This KMS key is used to encrypt/decrypt the application ENCRYPTION_KEY stored
+# in SSM Parameter Store. The actual patient data encryption (AES-256-GCM) is
+# performed at the application level; KMS protects the key at rest.
+# ==============================================================================
+
+resource "aws_kms_key" "app_encryption" {
+  description             = "KMS key for ClearHealth application encryption key management"
+  deletion_window_in_days = 30
+  enable_key_rotation     = true
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "AllowRootAccountFullAccess"
+        Effect = "Allow"
+        Principal = {
+          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
+        }
+        Action   = "kms:*"
+        Resource = "*"
+      },
+      {
+        Sid    = "AllowECSTaskDecrypt"
+        Effect = "Allow"
+        Principal = {
+          AWS = aws_iam_role.ecs_execution.arn
+        }
+        Action = [
+          "kms:Decrypt",
+          "kms:DescribeKey"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+
+  tags = {
+    Name       = "clearhealth-${var.environment}-app-encryption-kms"
+    Compliance = "HIPAA"
+    Purpose    = "Patient data encryption key management"
+  }
+}
+
+resource "aws_kms_alias" "app_encryption" {
+  name          = "alias/clearhealth-${var.environment}-app-encryption"
+  target_key_id = aws_kms_key.app_encryption.key_id
+}
+
+resource "aws_kms_key" "backup" {
+  description             = "KMS key for ClearHealth database backup encryption"
+  deletion_window_in_days = 30
+  enable_key_rotation     = true
+
+  tags = {
+    Name       = "clearhealth-${var.environment}-backup-kms"
+    Compliance = "HIPAA"
+  }
+}
+
+resource "aws_kms_alias" "backup" {
+  name          = "alias/clearhealth-${var.environment}-backup-key"
+  target_key_id = aws_kms_key.backup.key_id
+}
+
+data "aws_caller_identity" "current" {}
+
 # ==============================================================================
 # ALB (Application Load Balancer)
 # ==============================================================================
@@ -617,6 +692,33 @@ resource "aws_iam_role_policy" "ecs_task_s3" {
           aws_s3_bucket.documents.arn,
           "${aws_s3_bucket.documents.arn}/*"
         ]
+      }
+    ]
+  })
+}
+
+# Allow ECS execution role to read SSM parameters (secrets) and decrypt via KMS
+resource "aws_iam_role_policy" "ecs_execution_ssm" {
+  name = "clearhealth-${var.environment}-ssm-access"
+  role = aws_iam_role.ecs_execution.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ssm:GetParameter",
+          "ssm:GetParameters"
+        ]
+        Resource = "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/clearhealth/${var.environment}/*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "kms:Decrypt"
+        ]
+        Resource = aws_kms_key.app_encryption.arn
       }
     ]
   })

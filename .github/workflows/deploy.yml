@@ -1,0 +1,211 @@
+# ==============================================================================
+# ClearHealth — Deployment Pipeline
+# ==============================================================================
+# Manual trigger only (workflow_dispatch). No AWS credentials are configured
+# for this environment yet, so this workflow documents the deployment process
+# and will be enabled once AWS infrastructure is provisioned.
+#
+# Deployment steps:
+#   1. Build Docker image (multi-stage, production target)
+#   2. Tag with git SHA + timestamp for traceability
+#   3. Push to Amazon ECR
+#   4. Run Prisma migrations against production database
+#   5. Update ECS task definition with new image
+#   6. Deploy to ECS Fargate with rolling update
+#   7. Wait for service stability
+#   8. Run post-deploy health check
+# ==============================================================================
+
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Deployment environment"
+        required: true
+        default: "staging"
+        type: choice
+        options:
+          - staging
+          - prod
+      skip_migrations:
+        description: "Skip database migrations"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY: clearhealth-api
+
+jobs:
+  build-and-push:
+    name: Build & Push Docker Image
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.meta.outputs.image_tag }}
+      full_image: ${{ steps.meta.outputs.full_image }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Extract metadata and build tags
+        id: meta
+        run: |
+          SHA_SHORT=$(git rev-parse --short HEAD)
+          TIMESTAMP=$(date +%Y%m%d%H%M%S)
+          IMAGE_TAG="${TIMESTAMP}-${SHA_SHORT}"
+          FULL_IMAGE="${{ steps.ecr-login.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${IMAGE_TAG}"
+          echo "image_tag=${IMAGE_TAG}" >> "$GITHUB_OUTPUT"
+          echo "full_image=${FULL_IMAGE}" >> "$GITHUB_OUTPUT"
+          echo "registry=${{ steps.ecr-login.outputs.registry }}" >> "$GITHUB_OUTPUT"
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            --target runner \
+            --tag ${{ steps.meta.outputs.full_image }} \
+            --tag ${{ steps.meta.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest \
+            --label "org.opencontainers.image.revision=${{ github.sha }}" \
+            --label "org.opencontainers.image.created=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            .
+
+      - name: Push to ECR
+        run: |
+          docker push ${{ steps.meta.outputs.full_image }}
+          docker push ${{ steps.meta.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
+
+  migrate:
+    name: Run Database Migrations
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    if: ${{ !inputs.skip_migrations }}
+    environment: ${{ inputs.environment }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Fetch database URL from SSM
+        id: db-url
+        run: |
+          DB_URL=$(aws ssm get-parameter \
+            --name "/clearhealth/${{ inputs.environment }}/database-url" \
+            --with-decryption \
+            --query "Parameter.Value" \
+            --output text)
+          echo "::add-mask::${DB_URL}"
+          echo "database_url=${DB_URL}" >> "$GITHUB_OUTPUT"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Run migrations
+        env:
+          DATABASE_URL: ${{ steps.db-url.outputs.database_url }}
+        run: npx prisma migrate deploy
+
+  deploy:
+    name: Deploy to ECS
+    runs-on: ubuntu-latest
+    needs: [build-and-push, migrate]
+    if: always() && needs.build-and-push.result == 'success' && (needs.migrate.result == 'success' || needs.migrate.result == 'skipped')
+    environment: ${{ inputs.environment }}
+
+    env:
+      ECS_CLUSTER: clearhealth-${{ inputs.environment }}
+      ECS_SERVICE: clearhealth-${{ inputs.environment }}-api
+      ECS_TASK_DEFINITION: clearhealth-${{ inputs.environment }}-api
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Download current task definition
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition ${{ env.ECS_TASK_DEFINITION }} \
+            --query taskDefinition > task-definition.json
+
+      - name: Update task definition with new image
+        id: update-task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-definition.json
+          container-name: api
+          image: ${{ needs.build-and-push.outputs.full_image }}
+
+      - name: Deploy to ECS
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.update-task-def.outputs.task-definition }}
+          service: ${{ env.ECS_SERVICE }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
+
+  health-check:
+    name: Post-Deploy Health Check
+    runs-on: ubuntu-latest
+    needs: deploy
+    environment: ${{ inputs.environment }}
+
+    steps:
+      - name: Wait for deployment to stabilize
+        run: sleep 30
+
+      - name: Run health check
+        run: |
+          MAX_RETRIES=5
+          RETRY_DELAY=10
+
+          for i in $(seq 1 $MAX_RETRIES); do
+            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+              "https://${{ secrets.API_DOMAIN }}/health" || echo "000")
+
+            if [ "$HTTP_STATUS" = "200" ]; then
+              echo "Health check passed (attempt $i/$MAX_RETRIES)"
+              exit 0
+            fi
+
+            echo "Health check failed with status $HTTP_STATUS (attempt $i/$MAX_RETRIES)"
+            if [ "$i" -lt "$MAX_RETRIES" ]; then
+              sleep $RETRY_DELAY
+            fi
+          done
+
+          echo "::error::Health check failed after $MAX_RETRIES attempts"
+          exit 1

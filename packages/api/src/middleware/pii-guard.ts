@@ -12,6 +12,7 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
+import { logger } from '../utils/logger';
 
 /** SSN pattern: XXX-XX-XXXX */
 const SSN_PATTERN = /\b\d{3}-\d{2}-\d{4}\b/g;
@@ -30,23 +31,42 @@ const SENSITIVE_FIELDS = ['ssn', 'socialSecurityNumber', 'dateOfBirth', 'dob', '
  * Replaces SSNs with '***-**-****' and emails with '[REDACTED]'.
  */
 export function maskPII(text: string): string {
-  // TODO: implement
-  // - Replace SSN patterns (with and without dashes)
-  // - Replace email addresses in log context (not in response bodies)
-  // - Return masked string
-  return text;
+  let result = text;
+  result = result.replace(SSN_PATTERN, '***-**-****');
+  result = result.replace(SSN_NO_DASH_PATTERN, '***-**-****');
+  result = result.replace(EMAIL_PATTERN, '[REDACTED]');
+  return result;
 }
 
 /**
  * Recursively scans an object and masks sensitive field values.
  */
 export function maskSensitiveFields(obj: Record<string, unknown>): Record<string, unknown> {
-  // TODO: implement
-  // - Walk object tree recursively
-  // - For keys matching SENSITIVE_FIELDS, replace value with '[REDACTED]'
-  // - For string values, run through maskPII()
-  // - Return new object (don't mutate original)
-  return obj;
+  const result: Record<string, unknown> = {};
+
+  for (const [key, value] of Object.entries(obj)) {
+    if (SENSITIVE_FIELDS.includes(key)) {
+      result[key] = '[REDACTED]';
+    } else if (typeof value === 'string') {
+      result[key] = maskPII(value);
+    } else if (Array.isArray(value)) {
+      result[key] = value.map((item) => {
+        if (item !== null && typeof item === 'object') {
+          return maskSensitiveFields(item as Record<string, unknown>);
+        }
+        if (typeof item === 'string') {
+          return maskPII(item);
+        }
+        return item;
+      });
+    } else if (value !== null && typeof value === 'object' && !(value instanceof Date)) {
+      result[key] = maskSensitiveFields(value as Record<string, unknown>);
+    } else {
+      result[key] = value;
+    }
+  }
+
+  return result;
 }
 
 /**
@@ -58,11 +78,26 @@ export function maskSensitiveFields(obj: Record<string, unknown>): Record<string
  * catches it before it reaches the client or logs.
  */
 export function piiGuardMiddleware(_req: Request, res: Response, next: NextFunction): void {
-  // TODO: implement
-  // - Override res.json() to intercept response body
-  // - Scan response body for PII patterns
-  // - Mask any detected PII
-  // - Log a warning if PII was found (potential application code issue)
-  // - Call original res.json() with sanitized data
+  const originalJson = res.json.bind(res);
+
+  res.json = function piiFilteredJson(body: unknown): Response {
+    if (body !== null && typeof body === 'object') {
+      const originalStr = JSON.stringify(body);
+      const masked = maskSensitiveFields(body as Record<string, unknown>);
+      const maskedStr = JSON.stringify(masked);
+
+      if (originalStr !== maskedStr) {
+        logger.warn('PII detected in response body and masked by guard middleware', {
+          path: _req.path,
+          method: _req.method,
+        });
+      }
+
+      return originalJson(masked);
+    }
+
+    return originalJson(body);
+  };
+
   next();
 }

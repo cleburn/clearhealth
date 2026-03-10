@@ -13,8 +13,10 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
 import type { JWTPayload } from '@clearhealth/shared/types/auth';
 import type { UserRole } from '@clearhealth/shared/constants/roles';
+import { logger } from '../utils/logger';
 
 /** Extended Express Request with authenticated user context */
 export interface AuthenticatedRequest extends Request {
@@ -28,14 +30,42 @@ export interface AuthenticatedRequest extends Request {
  * the decoded payload to the request object.
  */
 export function authMiddleware(req: AuthenticatedRequest, res: Response, next: NextFunction): void {
-  // TODO: implement
-  // - Extract token from 'Authorization: Bearer <token>' header
-  // - Verify token using jsonwebtoken and JWT_SECRET env var
-  // - Check token is not expired
-  // - Attach decoded payload (userId, tenantId, role) to req.user
-  // - Set req.tenantId for tenant-scoped queries
-  // - On failure: return 401 with generic error (don't leak token details)
-  next();
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    res.status(401).json({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+    return;
+  }
+
+  const token = authHeader.substring(7);
+
+  const jwtSecret = process.env.JWT_SECRET;
+  if (!jwtSecret) {
+    logger.error('JWT_SECRET not configured');
+    res.status(500).json({ error: 'Internal server error', code: 'INTERNAL_ERROR' });
+    return;
+  }
+
+  try {
+    const decoded = jwt.verify(token, jwtSecret) as JWTPayload;
+
+    req.user = decoded;
+    req.tenantId = decoded.tenantId;
+
+    next();
+  } catch (err) {
+    const errorMessage = err instanceof jwt.TokenExpiredError
+      ? 'Token expired'
+      : 'Invalid token';
+
+    logger.warn('Authentication failed', {
+      reason: errorMessage,
+      ip: req.ip,
+      path: req.path,
+    });
+
+    res.status(401).json({ error: errorMessage, code: 'AUTH_FAILED' });
+  }
 }
 
 /**
@@ -51,11 +81,24 @@ export function authMiddleware(req: AuthenticatedRequest, res: Response, next: N
  */
 export function requireRole(...roles: (UserRole | string)[]): (req: AuthenticatedRequest, res: Response, next: NextFunction) => void {
   return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-    // TODO: implement
-    // - Check req.user exists (auth middleware must run first)
-    // - Check req.user.role is in the allowed roles list
-    // - On failure: return 403 Forbidden
-    // - Log unauthorized access attempts to audit trail
+    if (!req.user) {
+      res.status(401).json({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+      return;
+    }
+
+    if (!roles.includes(req.user.role)) {
+      logger.warn('Unauthorized access attempt', {
+        userId: req.user.userId,
+        requiredRoles: roles,
+        userRole: req.user.role,
+        path: req.path,
+        method: req.method,
+      });
+
+      res.status(403).json({ error: 'Insufficient permissions', code: 'FORBIDDEN' });
+      return;
+    }
+
     next();
   };
 }

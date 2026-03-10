@@ -1,0 +1,81 @@
+{
+  "$schema": "https://aegis.dev/schemas/constitution.v0.1.0.json",
+  "version": "0.1.0",
+  "project": "ClearHealth",
+  "description": "Multi-tenant HIPAA-compliant appointment platform. Monorepo with packages/api, packages/web, packages/shared, Prisma schema, infrastructure, and docs.",
+  "principles": [
+    {
+      "id": "hipaa-compliance",
+      "text": "HIPAA compliance and patient data security always win. No design decision, performance optimization, or feature deadline overrides patient data protection.",
+      "priority": 1
+    },
+    {
+      "id": "tenant-isolation",
+      "text": "Tenant isolation is inviolable. No data may leak across clinic boundaries. Every data access path must be scoped by tenantId.",
+      "priority": 2
+    },
+    {
+      "id": "audit-completeness",
+      "text": "Every patient data access is logged through audit middleware with no exceptions. The audit trail must be complete and tamper-evident.",
+      "priority": 3
+    },
+    {
+      "id": "type-safety",
+      "text": "Strict TypeScript everywhere. No use of 'any' types. Zod schemas validate all data at API boundaries. The type system is a safety net, not a suggestion.",
+      "priority": 4
+    },
+    {
+      "id": "test-coverage",
+      "text": "Nothing ships without tests. New endpoints require test coverage. All changes must pass the full CI gate before landing.",
+      "priority": 5
+    },
+    {
+      "id": "code-clarity",
+      "text": "Code clarity over cleverness. Prefer readable, explicit implementations over terse or abstract patterns.",
+      "priority": 6
+    }
+  ],
+  "boundaries": {
+    "sensitive_domains": [
+      "patient_data",
+      "authentication",
+      "encryption",
+      "pii_handling",
+      "infrastructure"
+    ],
+    "sensitive_patterns": [
+      {
+        "pattern": "Real SSN formats (XXX-XX-XXXX) outside of test files",
+        "action": "never_generate"
+      },
+      {
+        "pattern": "Hardcoded secrets, API keys, or credentials",
+        "action": "never_generate"
+      },
+      {
+        "pattern": "Patient names, DOBs, or other PII in logs or comments",
+        "action": "never_generate"
+      },
+      {
+        "pattern": "PII in error messages or production responses",
+        "action": "never_generate"
+      },
+      {
+        "pattern": "Client-side caching of patient data (localStorage, sessionStorage, cookies, client state)",
+        "action": "never_generate"
+      },
+      {
+        "pattern": "Redis caching of insurance verification data beyond 24-hour TTL",
+        "action": "never_generate"
+      },
+      {
+        "pattern": "Stack traces in production error responses",
+        "action": "never_generate"
+      },
+      {
+        "pattern": "Patient data hydrated into client-side state",
+        "action": "never_generate"
+      }
+    ]
+  }
+}

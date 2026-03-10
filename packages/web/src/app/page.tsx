@@ -12,17 +12,43 @@
 
 'use client';
 
-import type { LoginRequest } from '@clearhealth/shared/types/auth';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/hooks/useAuth';
+import { LoginForm } from '@/components/forms/login-form';
+import type { LoginFormData } from '@/lib/validators';
 
 export default function LoginPage() {
-  // TODO: implement
-  // - Check if user is already authenticated -> redirect to /dashboard
-  // - Login form with email + password fields
-  // - Form validation using Zod loginSchema
-  // - Submit handler: call auth API, store tokens, redirect
-  // - "Forgot password?" link -> /forgot-password
-  // - Display error messages for failed login attempts
-  // - Loading state during authentication
+  const { isAuthenticated, isLoading, login } = useAuth();
+  const router = useRouter();
+
+  // Redirect authenticated users to dashboard
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      router.replace('/dashboard');
+    }
+  }, [isAuthenticated, isLoading, router]);
+
+  const handleLogin = async (data: LoginFormData) => {
+    await login(data);
+    router.push('/dashboard');
+  };
+
+  // Show nothing while checking auth status
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-brand-50">
+        <div className="text-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-200 border-t-brand-600 mx-auto" />
+          <p className="mt-4 text-sm text-gray-500">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isAuthenticated) {
+    return null; // Will redirect
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-brand-50">
@@ -34,50 +60,7 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* TODO: implement login form */}
-        <form className="mt-8 space-y-6">
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email address
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-brand-500"
-              />
-            </div>
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-brand-500"
-              />
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            className="w-full rounded-md bg-brand-600 px-4 py-2 text-white hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2"
-          >
-            Sign in
-          </button>
-
-          <div className="text-center">
-            <a href="/forgot-password" className="text-sm text-brand-600 hover:text-brand-500">
-              Forgot your password?
-            </a>
-          </div>
-        </form>
+        <LoginForm onSubmit={handleLogin} />
       </div>
     </div>
   );

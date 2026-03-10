@@ -1,17 +1,18 @@
 # ==============================================================================
 # ClearHealth — Continuous Integration
 # ==============================================================================
-# Runs on pull requests to main and staging branches.
+# Runs on push to main and on pull requests.
 # Validates code quality, type safety, tests, security, and PII compliance.
+# All 5 quality gates must pass before merge (enforced by ci-gate job).
 # ==============================================================================
 
 name: CI
 
 on:
+  push:
+    branches: [main]
   pull_request:
     branches: [main, staging]
-  push:
-    branches: [staging]
 
 permissions:
   contents: read
@@ -94,6 +95,8 @@ jobs:
       JWT_REFRESH_SECRET: ci-test-refresh-secret
       ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
       NODE_ENV: test
+      LOG_LEVEL: error
+      AUDIT_LOG_ENABLED: "false"
 
     steps:
       - name: Checkout
@@ -135,27 +138,33 @@ jobs:
 
       - name: Run npm audit
         run: npm audit --audit-level=high
-        continue-on-error: false
 
-  pii-check:
-    name: PII Pattern Check
+  pii-scan:
+    name: PII Pattern Scan
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Check for hardcoded PII patterns in source files
+      - name: Scan for hardcoded SSN patterns in production source
         run: |
+          echo "=== PII Pattern Scan ==="
           echo "Scanning for potential PII patterns in source files..."
+          FAILED=0
 
-          # Check for SSN patterns (XXX-XX-XXXX with real-looking numbers)
+          # Check for SSN patterns (XXX-XX-XXXX) in production source files.
+          # Exclude test files, seed data, validators, and PII guard (which contain
+          # SSN regex patterns for detection purposes).
           SSN_MATCHES=$(grep -rn '\b[0-9]\{3\}-[0-9]\{2\}-[0-9]\{4\}\b' \
             --include="*.ts" --include="*.tsx" --include="*.js" \
             --exclude-dir=node_modules \
+            --exclude-dir=dist \
             --exclude-dir=tests \
             --exclude-dir=__tests__ \
             --exclude="*.test.*" \
             --exclude="*.spec.*" \
+            --exclude="seed.ts" \
+            --exclude="seed.js" \
             --exclude="validators.ts" \
             --exclude="pii-guard.ts" \
             . || true)
@@ -166,16 +175,19 @@ jobs:
             echo ""
             echo "If these are regex patterns for validation/detection, add the file to exclusions."
             echo "If these are real SSNs, remove them immediately."
-            exit 1
+            FAILED=1
           fi
 
-          # Check for hardcoded secrets patterns
+          # Check for hardcoded secrets (long string values assigned to password/secret/api_key vars)
           SECRET_MATCHES=$(grep -rn \
             -e 'password\s*=\s*"[^"]\{8,\}"' \
             -e 'secret\s*=\s*"[^"]\{8,\}"' \
             -e 'api_key\s*=\s*"[^"]\{8,\}"' \
+            -e 'apiKey\s*=\s*"[^"]\{8,\}"' \
+            -e 'PRIVATE_KEY\s*=\s*"[^"]\{8,\}"' \
             --include="*.ts" --include="*.tsx" --include="*.js" \
             --exclude-dir=node_modules \
+            --exclude-dir=dist \
             --exclude-dir=tests \
             --exclude-dir=__tests__ \
             --exclude="*.test.*" \
@@ -186,15 +198,61 @@ jobs:
           if [ -n "$SECRET_MATCHES" ]; then
             echo "::warning::Potential hardcoded secrets found:"
             echo "$SECRET_MATCHES"
+            echo "Review these matches. If they are actual secrets, remove them and use environment variables."
           fi
 
-          echo "PII pattern check passed."
+          # Check for email addresses that look like real patient data
+          EMAIL_MATCHES=$(grep -rn '[a-zA-Z0-9._%+-]\+@[a-zA-Z0-9.-]\+\.[a-zA-Z]\{2,\}' \
+            --include="*.ts" --include="*.tsx" --include="*.js" \
+            --exclude-dir=node_modules \
+            --exclude-dir=dist \
+            --exclude-dir=tests \
+            --exclude-dir=__tests__ \
+            --exclude="*.test.*" \
+            --exclude="*.spec.*" \
+            --exclude="seed.ts" \
+            --exclude="seed.js" \
+            . || true)
 
-  # Gate — all checks must pass before merge
+          # Only warn on emails, don't fail (many are legitimate constants like support@example.com)
+          if [ -n "$EMAIL_MATCHES" ]; then
+            echo "::notice::Email addresses found in source (review for real patient data):"
+            echo "$EMAIL_MATCHES"
+          fi
+
+          if [ "$FAILED" -eq 1 ]; then
+            echo "::error::PII scan failed. Fix the issues above before merging."
+            exit 1
+          fi
+
+          echo "PII pattern scan passed."
+
+  # ============================================================================
+  # CI Gate — all 5 quality checks must pass
+  # ============================================================================
   ci-gate:
     name: CI Gate
-    needs: [lint, typecheck, test, security-audit, pii-check]
+    needs: [lint, typecheck, test, security-audit, pii-scan]
     runs-on: ubuntu-latest
+    if: always()
     steps:
-      - name: All checks passed
-        run: echo "All CI checks passed. PR is ready for review."
+      - name: Check all quality gates
+        run: |
+          echo "=== CI Gate Results ==="
+          echo "  lint:           ${{ needs.lint.result }}"
+          echo "  typecheck:      ${{ needs.typecheck.result }}"
+          echo "  test:           ${{ needs.test.result }}"
+          echo "  security-audit: ${{ needs.security-audit.result }}"
+          echo "  pii-scan:       ${{ needs.pii-scan.result }}"
+          echo ""
+
+          if [ "${{ needs.lint.result }}" != "success" ] || \
+             [ "${{ needs.typecheck.result }}" != "success" ] || \
+             [ "${{ needs.test.result }}" != "success" ] || \
+             [ "${{ needs.security-audit.result }}" != "success" ] || \
+             [ "${{ needs.pii-scan.result }}" != "success" ]; then
+            echo "::error::One or more CI gates failed. All 5 checks must pass."
+            exit 1
+          fi
+
+          echo "All CI gates passed. PR is ready for review."

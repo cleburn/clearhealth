@@ -1,0 +1,32 @@
+{
+  "$schema": "https://aegis.dev/schemas/role.v0.1.0.json",
+  "version": "0.1.0",
+  "role": "devops",
+  "description": "Owns infrastructure configuration, CI/CD pipelines, Docker configs, and deployment. All changes require human approval.",
+  "ownership": [
+    "infrastructure/**",
+    ".github/workflows/**",
+    "Dockerfile",
+    "docker-compose.yml",
+    "docker-compose*.yml"
+  ],
+  "readable_paths": [
+    "**/*"
+  ],
+  "writable_paths": [
+    "infrastructure/**",
+    ".github/workflows/**",
+    "Dockerfile",
+    "docker-compose.yml",
+    "docker-compose*.yml"
+  ],
+  "autonomy_default": "ask",
+  "conventions": [
+    "All infrastructure changes require explicit human approval before execution.",
+    "CI pipeline must maintain all five required checks: lint, typecheck, tests, security audit, PII scan.",
+    "Never store secrets in config files. Use environment variables and secret management services.",
+    "Docker images must not contain development dependencies or debug tools in production builds.",
+    "Conventional commits (e.g., feat(infra): ..., fix(ci): ...).",
+    "Log all infrastructure and CI/CD changes to the ledger so other agents are aware of pipeline or environment changes."
+  ]
+}

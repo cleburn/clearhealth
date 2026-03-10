@@ -13,6 +13,8 @@
 
 import { Response, NextFunction } from 'express';
 import type { AuthenticatedRequest } from './auth';
+import { prisma } from '../lib/prisma';
+import { logger } from '../utils/logger';
 
 /**
  * Maps HTTP methods to audit action names.
@@ -25,25 +27,47 @@ const METHOD_TO_ACTION: Record<string, string> = {
   DELETE: 'DELETE',
 };
 
+/** UUID v4 pattern for extracting resource IDs from paths */
+const UUID_PATTERN = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+
 /**
  * Extracts the resource name from the request path.
  * e.g., /api/v1/patients/123 -> "patient"
  */
 function extractResource(path: string): string {
-  // TODO: implement
-  // - Parse the path to extract the resource name
-  // - Strip /api/v1/ prefix and pluralization
-  // - Handle nested resources (e.g., /patients/:id/history -> "patient_history")
-  return 'unknown';
+  // Strip /api/v1/ prefix
+  const stripped = path.replace(/^\/api\/v1\//, '');
+  const segments = stripped.split('/').filter(Boolean);
+
+  if (segments.length === 0) {
+    return 'unknown';
+  }
+
+  // Get the resource name (first segment), singularize
+  const resource = segments[0].replace(/s$/, '');
+
+  // Handle nested resources (e.g., /patients/:id/history -> "patient_history")
+  const subResources: string[] = [];
+  for (let i = 1; i < segments.length; i++) {
+    // Skip UUID segments
+    if (!UUID_PATTERN.test(segments[i])) {
+      subResources.push(segments[i]);
+    }
+  }
+
+  if (subResources.length > 0) {
+    return `${resource}_${subResources.join('_')}`;
+  }
+
+  return resource;
 }
 
 /**
  * Extracts the resource ID from the request path, if present.
  */
 function extractResourceId(path: string): string | null {
-  // TODO: implement
-  // - Parse UUID from path segments
-  return null;
+  const match = path.match(UUID_PATTERN);
+  return match ? match[0] : null;
 }
 
 /**
@@ -54,24 +78,41 @@ function extractResourceId(path: string): string | null {
  * MUST be applied to all patient-related routes.
  */
 export function auditMiddleware(req: AuthenticatedRequest, _res: Response, next: NextFunction): void {
-  // TODO: implement
-  // - Extract user context from req.user (set by auth middleware)
-  // - Determine action from HTTP method
-  // - Extract resource and resourceId from path
-  // - Capture client IP address (handle X-Forwarded-For for load balancer)
-  // - Write audit log entry to database (async — don't block response)
-  // - Include request metadata: query params, body summary (no PII)
-  //
-  // Audit log entry shape:
-  // {
-  //   tenantId: req.tenantId,
-  //   userId: req.user.userId,
-  //   action: 'READ' | 'CREATE' | 'UPDATE' | 'DELETE',
-  //   resource: 'patient' | 'appointment' | 'billing' | etc.,
-  //   resourceId: '<uuid>' | null,
-  //   metadata: { method, path, query },
-  //   ipAddress: req.ip,
-  //   timestamp: new Date(),
-  // }
+  if (!req.user || !req.tenantId) {
+    next();
+    return;
+  }
+
+  const action = METHOD_TO_ACTION[req.method] || req.method;
+  const resource = extractResource(req.path);
+  const resourceId = extractResourceId(req.path);
+  const ipAddress = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.ip || 'unknown';
+
+  // Write audit log asynchronously — do not block the response
+  prisma.auditLog
+    .create({
+      data: {
+        tenantId: req.tenantId,
+        userId: req.user.userId,
+        action,
+        resource,
+        resourceId,
+        metadata: {
+          method: req.method,
+          path: req.path,
+          query: req.query,
+        },
+        ipAddress,
+      },
+    })
+    .catch((err: Error) => {
+      logger.error('Failed to write audit log', {
+        error: err.message,
+        userId: req.user?.userId,
+        resource,
+        action,
+      });
+    });
+
   next();
 }

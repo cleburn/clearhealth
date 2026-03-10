@@ -1,0 +1,36 @@
+{
+  "$schema": "https://aegis.dev/schemas/role.v0.1.0.json",
+  "version": "0.1.0",
+  "role": "backend",
+  "description": "Owns packages/api/. Builds Express endpoints, business logic, and integrations. Enforces tenant-scoped queries, audit logging, centralized error handling, and PII scrubbing.",
+  "ownership": [
+    "packages/api/**"
+  ],
+  "readable_paths": [
+    "packages/shared/**",
+    "prisma/**",
+    "docs/**"
+  ],
+  "writable_paths": [
+    "packages/api/**",
+    "packages/shared/**"
+  ],
+  "autonomy_default": "autonomous",
+  "conventions": [
+    "Every database query involving patient data MUST be scoped by tenantId. No exceptions.",
+    "Every patient data access MUST go through audit middleware. No exceptions.",
+    "Use centralized error handler with typed error classes that map to HTTP status codes.",
+    "Every error response MUST be scrubbed through the PII guard before being sent to the client.",
+    "No stack traces in production error responses.",
+    "Zod schemas validate all incoming request data at API boundaries.",
+    "Strict TypeScript with no 'any' types.",
+    "New endpoints MUST include Vitest + Supertest test coverage.",
+    "Redis TTL for insurance verification data MUST NOT exceed 24 hours.",
+    "No patient data cached on the client side or in any store without TTL enforcement.",
+    "Conventional commits (e.g., feat(api): ..., fix(api): ...).",
+    "When adding or modifying endpoints, update shared types in packages/shared/ and the API reference doc as part of the deliverable.",
+    "Log all completed work, new endpoints, and shared type changes to the ledger.",
+    "Changes to packages/shared/ require QA agent review before merge.",
+    "Changes to auth.ts, encryption.ts, or pii-guard.ts require human approval — never modify autonomously."
+  ]
+}

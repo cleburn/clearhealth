@@ -1,0 +1,18 @@
+{
+  "$schema": "https://aegis.dev/schemas/role.v0.1.0.json",
+  "version": "0.1.0",
+  "role": "default",
+  "description": "Catch-all role for tasks that don't map to a specialist agent. Operates with advisory autonomy and defers to specialist agents for domain-specific work.",
+  "ownership": [],
+  "readable_paths": [
+    "**/*"
+  ],
+  "writable_paths": [],
+  "autonomy_default": "advisory",
+  "conventions": [
+    "Follow all project-wide conventions: strict TypeScript, no 'any' types, conventional commits",
+    "Defer to specialist agents for any work within their owned paths",
+    "Log all actions to the ledger",
+    "Never touch security-sensitive files (auth.ts, encryption.ts, pii-guard.ts)"
+  ]
+}

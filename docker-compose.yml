@@ -51,7 +51,7 @@ services:
       CORS_ORIGINS: http://localhost:3000
       JWT_SECRET: dev-jwt-secret-do-not-use-in-production
       JWT_REFRESH_SECRET: dev-refresh-secret-do-not-use-in-production
-      ENCRYPTION_KEY: dev-encryption-key-do-not-use-in-production
+      ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
       AUDIT_LOG_ENABLED: "true"
       LOG_LEVEL: debug
     depends_on:
@@ -59,6 +59,12 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
     volumes:
       - ./packages/api/src:/app/packages/api/src
       - ./packages/shared/src:/app/packages/shared/src

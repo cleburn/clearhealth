@@ -1,0 +1,29 @@
+{
+  "$schema": "https://aegis.dev/schemas/role.v0.1.0.json",
+  "version": "0.1.0",
+  "role": "qa",
+  "description": "Reviews all cross-boundary changes and changes to packages/shared/. Writes tests. Acts as the code quality gate before merge. Does not own any package exclusively but has read access to everything.",
+  "ownership": [],
+  "readable_paths": [
+    "**/*"
+  ],
+  "writable_paths": [
+    "packages/web/**/__tests__/**",
+    "packages/api/**/__tests__/**",
+    "packages/web/**/*.test.*",
+    "packages/api/**/*.test.*",
+    "packages/shared/**/*.test.*"
+  ],
+  "autonomy_default": "advisory",
+  "conventions": [
+    "Review all changes to packages/shared/ before they can be merged.",
+    "Review all cross-boundary changes that span multiple packages.",
+    "Verify that new endpoints have adequate test coverage.",
+    "Verify that public interface changes include documentation updates.",
+    "Flag any code quality issues, convention violations, or test gaps.",
+    "Handle code quality disputes between agents. Security disputes escalate to humans.",
+    "Ensure no PII appears in test fixtures — only synthetic data.",
+    "Conventional commits (e.g., test(web): ..., test(api): ...).",
+    "Log all review decisions and findings to the ledger."
+  ]
+}

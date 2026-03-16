@@ -1,81 +1,178 @@
 {
-  "$schema": "https://aegis.dev/schemas/constitution.v0.1.0.json",
+  "$schema": "https://aegis.dev/schema/constitution.v0.1.0.json",
   "version": "0.1.0",
-  "project": "ClearHealth",
-  "description": "Multi-tenant HIPAA-compliant appointment platform. Monorepo with packages/api, packages/web, packages/shared, Prisma schema, infrastructure, and docs.",
-  "principles": [
-    {
-      "id": "hipaa-compliance",
-      "text": "HIPAA compliance and patient data security always win. No design decision, performance optimization, or feature deadline overrides patient data protection.",
-      "priority": 1
-    },
-    {
-      "id": "tenant-isolation",
-      "text": "Tenant isolation is inviolable. No data may leak across clinic boundaries. Every data access path must be scoped by tenantId.",
-      "priority": 2
-    },
-    {
-      "id": "audit-completeness",
-      "text": "Every patient data access is logged through audit middleware with no exceptions. The audit trail must be complete and tamper-evident.",
-      "priority": 3
-    },
-    {
-      "id": "type-safety",
-      "text": "Strict TypeScript everywhere. No use of 'any' types. Zod schemas validate all data at API boundaries. The type system is a safety net, not a suggestion.",
-      "priority": 4
-    },
-    {
-      "id": "test-coverage",
-      "text": "Nothing ships without tests. New endpoints require test coverage. All changes must pass the full CI gate before landing.",
-      "priority": 5
-    },
-    {
-      "id": "code-clarity",
-      "text": "Code clarity over cleverness. Prefer readable, explicit implementations over terse or abstract patterns.",
-      "priority": 6
-    }
-  ],
-  "boundaries": {
-    "sensitive_domains": [
-      "patient_data",
-      "authentication",
-      "encryption",
-      "pii_handling",
-      "infrastructure"
+  "project": {
+    "name": "ClearHealth",
+    "purpose": "Multi-tenant HIPAA-compliant appointment platform. Monorepo with packages/api, packages/web, packages/shared, packages/notifications, Prisma schema, infrastructure, and docs.",
+    "architecture": "monorepo",
+    "module_map": [
+      {
+        "path": "packages/api",
+        "purpose": "Express API server — endpoints, middleware (auth, audit, PII guard), services (encryption, insurance, notifications), and business logic. All routes are tenant-scoped, audit-logged, and PII-filtered.",
+        "owner": "backend"
+      },
+      {
+        "path": "packages/web",
+        "purpose": "Next.js 14 App Router frontend — React server components, shadcn/ui design system, Tailwind CSS. Server-component-first architecture ensuring patient data never reaches client state.",
+        "owner": "frontend"
+      },
+      {
+        "path": "packages/shared",
+        "purpose": "Shared contract layer between frontend, backend, and notifications. Contains TypeScript types, Zod schemas, and shared interfaces including notification payload interfaces.",
+        "owner": null
+      },
+      {
+        "path": "packages/notifications",
+        "purpose": "Delivery-only service for SMS and email appointment reminders. Receives pre-tokenized payloads from the backend containing delivery address, template ID, and display-safe template variables. Never accesses patient records, never receives patient IDs or raw PII.",
+        "owner": "notifications"
+      },
+      {
+        "path": "prisma",
+        "purpose": "Prisma schema, migrations, and seed data. Defines the multi-tenant data model with PII field annotations and encryption markers.",
+        "owner": "database"
+      },
+      {
+        "path": "infrastructure",
+        "purpose": "Terraform configs, deployment scripts, backup and key rotation scripts.",
+        "owner": "devops"
+      },
+      {
+        "path": ".github/workflows",
+        "purpose": "CI/CD pipelines — lint, typecheck, test, security audit, PII scan gates, and deployment workflows.",
+        "owner": "devops"
+      },
+      {
+        "path": "docs",
+        "purpose": "Project documentation, API reference, architecture docs.",
+        "owner": null
+      }
     ],
-    "sensitive_patterns": [
+    "required_artifacts": [
       {
-        "pattern": "Real SSN formats (XXX-XX-XXXX) outside of test files",
-        "action": "never_generate"
+        "path": "README.md",
+        "purpose": "Project overview, setup instructions, and architecture summary",
+        "source": "manual"
       },
       {
-        "pattern": "Hardcoded secrets, API keys, or credentials",
-        "action": "never_generate"
-      },
-      {
-        "pattern": "Patient names, DOBs, or other PII in logs or comments",
-        "action": "never_generate"
-      },
-      {
-        "pattern": "PII in error messages or production responses",
-        "action": "never_generate"
-      },
-      {
-        "pattern": "Client-side caching of patient data (localStorage, sessionStorage, cookies, client state)",
-        "action": "never_generate"
-      },
-      {
-        "pattern": "Redis caching of insurance verification data beyond 24-hour TTL",
-        "action": "never_generate"
-      },
-      {
-        "pattern": "Stack traces in production error responses",
-        "action": "never_generate"
-      },
-      {
-        "pattern": "Patient data hydrated into client-side state",
-        "action": "never_generate"
+        "path": ".env.example",
+        "purpose": "Environment variable template with no real secrets",
+        "source": "devops"
       }
     ]
-  }
+  },
+  "tech_stack": {
+    "languages": [
+      "TypeScript"
+    ],
+    "frameworks": [
+      "Express",
+      "Next.js 14 (App Router)",
+      "React",
+      "Prisma"
+    ],
+    "infrastructure": [
+      "Docker",
+      "Terraform",
+      "AWS",
+      "Redis",
+      "PostgreSQL"
+    ],
+    "package_managers": [
+      "npm"
+    ],
+    "key_libraries": [
+      "Zod",
+      "Tailwind CSS",
+      "shadcn/ui",
+      "Vitest",
+      "Supertest",
+      "Winston",
+      "jsonwebtoken",
+      "bcrypt"
+    ]
+  },
+  "principles": [
+    {
+      "name": "hipaa-compliance",
+      "statement": "HIPAA compliance and patient data security always win. No design decision, performance optimization, or feature deadline overrides patient data protection.",
+      "priority": 1,
+      "enforcement": "strict"
+    },
+    {
+      "name": "tenant-isolation",
+      "statement": "Tenant isolation is inviolable. No data may leak across clinic boundaries. Every data access path must be scoped by tenantId.",
+      "priority": 2,
+      "enforcement": "strict"
+    },
+    {
+      "name": "audit-completeness",
+      "statement": "Every patient data access is logged through audit middleware with no exceptions. The audit trail must be complete and tamper-evident.",
+      "priority": 3,
+      "enforcement": "strict"
+    },
+    {
+      "name": "type-safety",
+      "statement": "Strict TypeScript everywhere. No use of 'any' types. Zod schemas validate all data at API boundaries. The type system is a safety net, not a suggestion.",
+      "priority": 4,
+      "enforcement": "strict"
+    },
+    {
+      "name": "test-coverage",
+      "statement": "Nothing ships without tests. New endpoints require test coverage. All changes must pass the full CI gate before landing.",
+      "priority": 5,
+      "enforcement": "strict"
+    },
+    {
+      "name": "code-clarity",
+      "statement": "Code clarity over cleverness. Prefer readable, explicit implementations over terse or abstract patterns.",
+      "priority": 6,
+      "enforcement": "preferred"
+    }
+  ],
+  "build_commands": {
+    "install": "npm install",
+    "build": "npm run build",
+    "test": "npx vitest run",
+    "lint": "npx eslint .",
+    "typecheck": "npx tsc --noEmit",
+    "dev": "npm run dev"
+  },
+  "sensitivity_tiers": [
+    {
+      "tier": "critical",
+      "description": "Patient data, PHI, authentication, encryption, PII handling. Any change requires explicit human approval.",
+      "domains": [
+        "patient_data",
+        "authentication",
+        "encryption",
+        "pii_handling"
+      ]
+    },
+    {
+      "tier": "high",
+      "description": "Infrastructure, CI/CD, deployment configs. Requires human approval.",
+      "domains": [
+        "infrastructure"
+      ]
+    },
+    {
+      "tier": "medium",
+      "description": "Shared types, cross-boundary work, notifications service. Requires review before merge.",
+      "domains": [
+        "shared_types",
+        "cross_boundary_work",
+        "notifications"
+      ]
+    },
+    {
+      "tier": "low",
+      "description": "Feature work within owned scope, documentation, tests, routine refactoring.",
+      "domains": [
+        "own_scope_feature_work",
+        "documentation_updates",
+        "test_additions",
+        "routine_refactoring"
+      ]
+    }
+  ]
 }

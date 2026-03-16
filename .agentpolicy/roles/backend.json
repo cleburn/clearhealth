@@ -1,21 +1,32 @@
 {
-  "$schema": "https://aegis.dev/schemas/role.v0.1.0.json",
+  "$schema": "https://aegis.dev/schema/role.v0.1.0.json",
   "version": "0.1.0",
-  "role": "backend",
-  "description": "Owns packages/api/. Builds Express endpoints, business logic, and integrations. Enforces tenant-scoped queries, audit logging, centralized error handling, and PII scrubbing.",
-  "ownership": [
-    "packages/api/**"
-  ],
-  "readable_paths": [
-    "packages/shared/**",
-    "prisma/**",
-    "docs/**"
-  ],
-  "writable_paths": [
-    "packages/api/**",
-    "packages/shared/**"
-  ],
-  "autonomy_default": "autonomous",
+  "role": {
+    "name": "backend",
+    "purpose": "Owns packages/api/. Builds Express endpoints, business logic, and integrations. Enforces tenant-scoped queries, audit logging, centralized error handling, and PII scrubbing. Responsible for tokenizing patient data before passing payloads to the notifications service."
+  },
+  "scope": {
+    "primary_paths": [
+      "packages/api/**"
+    ],
+    "secondary_paths": [
+      "packages/shared/**"
+    ],
+    "readable_paths": [
+      "packages/shared/**",
+      "packages/notifications/**",
+      "prisma/**",
+      "docs/**"
+    ]
+  },
+  "autonomy_overrides": {
+    "own_scope_feature_work": "delegated",
+    "shared_types": "advisory",
+    "patient_data": "conservative",
+    "authentication_and_authorization": "conservative",
+    "encryption": "conservative",
+    "pii_handling": "conservative"
+  },
   "conventions": [
     "Every database query involving patient data MUST be scoped by tenantId. No exceptions.",
     "Every patient data access MUST go through audit middleware. No exceptions.",
@@ -31,6 +42,15 @@
     "When adding or modifying endpoints, update shared types in packages/shared/ and the API reference doc as part of the deliverable.",
     "Log all completed work, new endpoints, and shared type changes to the ledger.",
     "Changes to packages/shared/ require QA agent review before merge.",
-    "Changes to auth.ts, encryption.ts, or pii-guard.ts require human approval — never modify autonomously."
-  ]
+    "Changes to auth.ts, encryption.ts, or pii-guard.ts require human approval — never modify autonomously.",
+    "When passing data to the notifications service, tokenize all patient data first. Payloads must contain only delivery address, template ID, and display-safe template variables. No patient IDs or raw PII."
+  ],
+  "forbidden_actions": [
+    "Modifying auth.ts, encryption.ts, or pii-guard.ts without human approval",
+    "Sending raw PII or patient IDs to the notifications service"
+  ],
+  "write_mode": {
+    "primary": "direct",
+    "shared": "propose_and_review"
+  }
 }

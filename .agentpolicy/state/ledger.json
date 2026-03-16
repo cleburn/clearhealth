@@ -1,17 +1,24 @@
 {
-  "$schema": "https://aegis.dev/schemas/ledger.v0.1.0.json",
+  "$schema": "https://aegis.dev/schema/ledger.v0.1.0.json",
   "version": "0.1.0",
-  "description": "The ledger serves as the sole communication bus between agents. All agents write to the ledger when completing work that may affect other agents. All agents read the ledger to discover relevant changes. No direct agent-to-agent communication.",
-  "entries": [
+  "sequence": 5,
+  "tasks": [
     {
+      "id": 1,
       "timestamp": "2026-03-09T12:00:00Z",
       "agent_role": "database",
       "action": "SEED_IMPLEMENTATION",
       "description": "Implemented full seed script with synthetic data: 2 tenants, 2 admins, 4 doctors, 8 patients, ~31 appointments, visit notes for completed appointments, billing records for completed appointments, 8 insurance verifications, and sample audit log entries. All data is synthetic. SSNs use placeholder encryption format (encrypted:iv:tag:cipher). Passwords use bcrypt-style placeholder hashes.",
-      "affected_paths": ["prisma/seed.ts"],
-      "requires_attention_from": ["backend"]
+      "affected_paths": [
+        "prisma/seed.ts"
+      ],
+      "requires_attention_from": [
+        "backend"
+      ],
+      "security": false
     },
     {
+      "id": 2,
       "timestamp": "2026-03-09T12:05:00Z",
       "agent_role": "backend",
       "action": "FULL_API_IMPLEMENTATION",
@@ -32,10 +39,14 @@
         "packages/api/src/lib/prisma.ts",
         "packages/api/src/lib/redis.ts"
       ],
-      "requires_attention_from": ["frontend", "qa"],
+      "requires_attention_from": [
+        "frontend",
+        "qa"
+      ],
       "security": true
     },
     {
+      "id": 3,
       "timestamp": "2026-03-09T12:10:00Z",
       "agent_role": "devops",
       "action": "INFRASTRUCTURE_IMPLEMENTATION",
@@ -52,18 +63,27 @@
         "infrastructure/terraform/variables.tf",
         ".env.example"
       ],
-      "requires_attention_from": ["qa"],
+      "requires_attention_from": [
+        "qa"
+      ],
       "security": true
     },
     {
+      "id": 4,
       "timestamp": "2026-03-09T12:15:00Z",
       "agent_role": "frontend",
       "action": "FULL_UI_IMPLEMENTATION",
       "description": "Implemented all web UI: API client with JWT auth flow (memory-only tokens, auto-refresh), AuthProvider context, 10 shadcn/ui components (button, input, card, badge, dialog, select, toast, table, label, tabs), 3 form components (login, appointment booking, patient intake), 5 data display components (stats card, appointment card, patient summary, visit note, billing row), all 8 pages (login, dashboard with role-specific views, appointments with CRUD, records with SOAP notes, admin overview, billing management, staff management). No PHI in client state. No localStorage/cookies for patient data.",
-      "affected_paths": ["packages/web/**"],
-      "requires_attention_from": ["qa"]
+      "affected_paths": [
+        "packages/web/**"
+      ],
+      "requires_attention_from": [
+        "qa"
+      ],
+      "security": false
     },
     {
+      "id": 5,
       "timestamp": "2026-03-09T12:20:00Z",
       "agent_role": "qa",
       "action": "TEST_SUITE_IMPLEMENTATION",
@@ -79,11 +99,39 @@
         "packages/api/src/routes/__tests__/billing.test.ts",
         "packages/shared/src/__tests__/permissions.test.ts"
       ],
-      "requires_attention_from": []
+      "requires_attention_from": [],
+      "security": false
     }
   ],
   "write_protocol": {
+    "lock_file": ".agentpolicy/state/ledger.lock",
+    "lock_timeout_seconds": 120,
+    "retry_interval_ms": 500,
+    "max_retries": 10,
+    "procedure": [
+      {
+        "step": 1,
+        "action": "Read current ledger and note sequence number"
+      },
+      {
+        "step": 2,
+        "action": "Attempt to create lock file. If exists and not stale, wait and retry"
+      },
+      {
+        "step": 3,
+        "action": "Re-read ledger. If sequence changed, release lock and restart"
+      },
+      {
+        "step": 4,
+        "action": "Write changes, increment sequence"
+      },
+      {
+        "step": 5,
+        "action": "Release lock file"
+      }
+    ],
     "required_fields": [
+      "id",
       "timestamp",
       "agent_role",
       "action",

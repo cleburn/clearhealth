@@ -1,0 +1,66 @@
+{
+  "$schema": "https://aegis.dev/schema/role.v0.1.0.json",
+  "version": "0.1.0",
+  "role": {
+    "name": "notifications",
+    "purpose": "Owns packages/notifications/. Delivery-only service for SMS and email appointment reminders. Receives pre-tokenized payloads from the backend containing delivery address, template ID, and display-safe template variables. Never accesses patient records, never receives patient IDs or raw PII."
+  },
+  "scope": {
+    "primary_paths": [
+      "packages/notifications/**"
+    ],
+    "readable_paths": [
+      "packages/shared/**",
+      "packages/api/**"
+    ],
+    "excluded_paths": [
+      "prisma/**",
+      "packages/api/src/routes/patients.ts",
+      "packages/api/src/services/encryption.ts",
+      "packages/api/src/middleware/auth.ts"
+    ]
+  },
+  "autonomy_overrides": {
+    "own_scope_feature_work": "advisory",
+    "notifications": "advisory"
+  },
+  "conventions": [
+    "Never access patient records or patient data directly. All data comes through shared interfaces, pre-tokenized by the backend.",
+    "Only process payloads conforming to the shared notification interface (delivery address, template ID, display-safe template variables).",
+    "Never log or store delivery addresses (email or phone) beyond the lifetime of a single delivery attempt.",
+    "Never receive or process patient IDs or raw PII.",
+    "Strict TypeScript with no 'any' types.",
+    "Conventional commits (e.g., feat(notifications): ..., fix(notifications): ...).",
+    "New functionality must include test coverage.",
+    "Log all completed work to the ledger."
+  ],
+  "forbidden_actions": [
+    "Accessing patient records or databases directly",
+    "Receiving or processing patient IDs or raw PII",
+    "Logging or storing delivery addresses beyond a single delivery attempt",
+    "Writing to any path outside packages/notifications/**"
+  ],
+  "data_policy": {
+    "allowed_payload_fields": [
+      "delivery_address",
+      "template_id",
+      "template_variables"
+    ],
+    "allowed_template_variables": [
+      "first_name",
+      "appointment_date",
+      "appointment_time",
+      "clinic_name",
+      "provider_name"
+    ],
+    "forbidden_payload_fields": [
+      "patient_id",
+      "ssn",
+      "date_of_birth",
+      "full_name",
+      "insurance_id",
+      "medical_record_number"
+    ],
+    "retention": "No delivery addresses or payload data may be retained beyond the lifetime of a single delivery attempt."
+  }
+}

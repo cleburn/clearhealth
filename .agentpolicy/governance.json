@@ -1,12 +1,32 @@
 {
-  "$schema": "https://aegis.dev/schemas/governance.v0.1.0.json",
+  "$schema": "https://aegis.dev/schema/governance.v0.1.0.json",
   "version": "0.1.0",
   "autonomy": {
-    "domains": [
+    "default_level": "advisory",
+    "levels": {
+      "delegated": "Agent may execute and merge autonomously if all conditions are met and CI passes.",
+      "advisory": "Agent may propose changes but requires review (QA or human) before merge.",
+      "conservative": "Agent must get explicit human approval before executing any change."
+    },
+    "domains": {
+      "own_scope_feature_work": "delegated",
+      "documentation_updates": "delegated",
+      "test_additions": "delegated",
+      "routine_refactoring": "delegated",
+      "shared_types": "advisory",
+      "cross_boundary_work": "advisory",
+      "notifications": "advisory",
+      "patient_data": "conservative",
+      "authentication_and_authorization": "conservative",
+      "encryption": "conservative",
+      "pii_handling": "conservative",
+      "infrastructure": "conservative"
+    },
+    "domain_details": [
       {
         "name": "own_scope_feature_work",
         "description": "Feature development and bug fixes within an agent's owned paths that do not touch security-sensitive areas",
-        "level": "autonomous",
+        "level": "delegated",
         "conditions": [
           "Change is within the agent's owned file paths",
           "Change does not touch auth, encryption, PII handling, or patient data logic",
@@ -16,7 +36,7 @@
       {
         "name": "documentation_updates",
         "description": "Updating documentation, README, inline comments",
-        "level": "autonomous",
+        "level": "delegated",
         "conditions": [
           "No PII or secrets introduced",
           "CI passes"
@@ -25,7 +45,7 @@
       {
         "name": "test_additions",
         "description": "Adding or updating tests within owned scope",
-        "level": "autonomous",
+        "level": "delegated",
         "conditions": [
           "No real PII data in test fixtures (use synthetic data only)",
           "CI passes"
@@ -34,7 +54,7 @@
       {
         "name": "routine_refactoring",
         "description": "Refactoring within owned paths that does not change public interfaces or touch sensitive areas",
-        "level": "autonomous",
+        "level": "delegated",
         "conditions": [
           "Change is within the agent's owned file paths",
           "Public interfaces unchanged",
@@ -43,10 +63,10 @@
       },
       {
         "name": "shared_types",
-        "description": "Changes to packages/shared/ (the contract layer between frontend and backend)",
+        "description": "Changes to packages/shared/ (the contract layer between frontend, backend, and notifications)",
         "level": "advisory",
         "conditions": [
-          "Only frontend or backend agents may write",
+          "Only frontend, backend, or notifications agents may write",
           "QA agent must review before merge"
         ]
       },
@@ -59,9 +79,20 @@
         ]
       },
       {
+        "name": "notifications",
+        "description": "Development and changes within packages/notifications/. The notifications service is a delivery-only mechanism — it processes pre-tokenized payloads and never accesses patient data directly.",
+        "level": "advisory",
+        "conditions": [
+          "Only processes payloads conforming to the shared notification interface",
+          "Never accesses patient records or raw PII directly",
+          "All payloads must be pre-tokenized by the backend before delivery to the notifications service",
+          "QA agent must review before merge"
+        ]
+      },
+      {
         "name": "patient_data",
         "description": "Any code that accesses, transforms, stores, or transmits patient data or PHI",
-        "level": "ask",
+        "level": "conservative",
         "conditions": [
           "Requires explicit human approval before execution"
         ]
@@ -69,7 +100,7 @@
       {
         "name": "authentication_and_authorization",
         "description": "Changes to auth.ts, session management, role-based access, JWT handling",
-        "level": "ask",
+        "level": "conservative",
         "conditions": [
           "Requires explicit human approval before execution"
         ]
@@ -77,7 +108,7 @@
       {
         "name": "encryption",
         "description": "Changes to encryption.ts, key management, data-at-rest or data-in-transit encryption",
-        "level": "ask",
+        "level": "conservative",
         "conditions": [
           "Requires explicit human approval before execution"
         ]
@@ -85,7 +116,7 @@
       {
         "name": "pii_handling",
         "description": "Changes to pii-guard.ts, PII detection, PII scrubbing logic",
-        "level": "ask",
+        "level": "conservative",
         "conditions": [
           "Requires explicit human approval before execution"
         ]
@@ -93,19 +124,89 @@
       {
         "name": "infrastructure",
         "description": "Terraform, CI/CD pipelines, Dockerfiles, docker-compose, deployment configs",
-        "level": "ask",
+        "level": "conservative",
         "conditions": [
           "Requires explicit human approval before execution"
         ]
       }
-    ],
-    "escalation": {
-      "security_ambiguity": "If there is any doubt about whether a change is security-sensitive, treat it as security-sensitive and escalate to a human. Never make an autonomous judgment call on security boundaries.",
-      "code_quality_disputes": "Escalate to the QA agent for code quality and convention disputes.",
-      "default": "When in doubt, escalate to human. Over-asking is always preferred over autonomous action on anything that could affect patient data."
-    }
+    ]
+  },
+  "permissions": {
+    "boundaries": {
+      "writable": [
+        "packages/api/**",
+        "packages/web/**",
+        "packages/shared/**",
+        "packages/notifications/**",
+        "prisma/**",
+        "infrastructure/**",
+        ".github/workflows/**",
+        "Dockerfile",
+        "docker-compose.yml",
+        "docker-compose*.yml",
+        "docs/**"
+      ],
+      "read_only": [
+        "**/*"
+      ],
+      "forbidden": []
+    },
+    "sensitive_patterns": [
+      {
+        "pattern": "Real SSN formats (XXX-XX-XXXX) outside of test files",
+        "reason": "HIPAA compliance — never generate real SSN formats",
+        "action": "never_generate"
+      },
+      {
+        "pattern": "Hardcoded secrets, API keys, or credentials",
+        "reason": "Security — secrets must come from environment variables or secret management",
+        "action": "never_generate"
+      },
+      {
+        "pattern": "Patient names, DOBs, or other PII in logs or comments",
+        "reason": "HIPAA compliance — PII must never appear in logs or source comments",
+        "action": "never_generate"
+      },
+      {
+        "pattern": "PII in error messages or production responses",
+        "reason": "HIPAA compliance — error responses must be PII-free",
+        "action": "never_generate"
+      },
+      {
+        "pattern": "Client-side caching of patient data (localStorage, sessionStorage, cookies, client state)",
+        "reason": "HIPAA compliance — patient data must remain server-side only",
+        "action": "never_generate"
+      },
+      {
+        "pattern": "Redis caching of insurance verification data beyond 24-hour TTL",
+        "reason": "Data retention policy — insurance data must expire within 24 hours",
+        "action": "never_generate"
+      },
+      {
+        "pattern": "Stack traces in production error responses",
+        "reason": "Security — stack traces leak implementation details",
+        "action": "never_generate"
+      },
+      {
+        "pattern": "Patient data hydrated into client-side state",
+        "reason": "HIPAA compliance — PHI must never be hydrated into client state",
+        "action": "never_generate"
+      },
+      {
+        "pattern": "Delivery addresses (email/phone) logged or stored by the notifications service beyond the lifetime of a single delivery attempt",
+        "reason": "Data minimization — the notifications service is a delivery-only mechanism and must not retain delivery addresses",
+        "action": "never_generate"
+      }
+    ]
   },
   "quality_gate": {
+    "pre_commit": {
+      "must_pass_tests": true,
+      "must_pass_lint": true,
+      "must_pass_typecheck": true,
+      "must_add_tests": true,
+      "must_update_docs": true
+    },
     "required_checks": [
       {
         "name": "lint",
@@ -134,9 +235,116 @@
       "All five checks must pass before any change can be merged (mirrors ci-gate job)"
     ]
   },
+  "conventions": [
+    {
+      "id": "strict-typescript",
+      "scope": "global",
+      "rule": "Strict TypeScript everywhere. No use of 'any' types.",
+      "enforcement": "strict"
+    },
+    {
+      "id": "conventional-commits",
+      "scope": "global",
+      "rule": "Use conventional commits with appropriate scope (e.g., feat(api):, fix(web):, feat(notifications):, feat(db):, fix(ci):).",
+      "enforcement": "strict"
+    },
+    {
+      "id": "zod-validation",
+      "scope": "api_boundaries",
+      "rule": "Zod schemas validate all incoming request data at API boundaries.",
+      "enforcement": "strict"
+    },
+    {
+      "id": "tenant-scoped-queries",
+      "scope": "backend",
+      "rule": "Every database query involving patient data MUST be scoped by tenantId. No exceptions.",
+      "enforcement": "strict"
+    },
+    {
+      "id": "audit-all-patient-access",
+      "scope": "backend",
+      "rule": "Every patient data access MUST go through audit middleware. No exceptions.",
+      "enforcement": "strict"
+    },
+    {
+      "id": "server-components-first",
+      "scope": "frontend",
+      "rule": "Server components by default. Only use 'use client' directive when interactivity is required, with justification documented.",
+      "enforcement": "strict"
+    },
+    {
+      "id": "no-phi-client-state",
+      "scope": "frontend",
+      "rule": "Patient data must NEVER be hydrated into client-side state. Keep all PHI server-side only.",
+      "enforcement": "strict"
+    },
+    {
+      "id": "synthetic-test-data",
+      "scope": "global",
+      "rule": "All test data must be synthetic. Never use real patient data, SSNs, or PII in tests, seeds, or fixtures.",
+      "enforcement": "strict"
+    },
+    {
+      "id": "notifications-no-direct-data-access",
+      "scope": "notifications",
+      "rule": "The notifications service must never access patient records directly. All patient data comes through shared interfaces, pre-tokenized by the backend.",
+      "enforcement": "strict"
+    },
+    {
+      "id": "notifications-no-delivery-address-retention",
+      "scope": "notifications",
+      "rule": "The notifications service must never log or store delivery addresses (email/phone) beyond the lifetime of a single delivery attempt.",
+      "enforcement": "strict"
+    },
+    {
+      "id": "ledger-communication",
+      "scope": "global",
+      "rule": "The ledger is the sole communication bus between agents. No direct agent-to-agent communication. Agents log changes to the ledger; other agents read it to discover relevant updates.",
+      "enforcement": "strict"
+    }
+  ],
+  "escalation": {
+    "on_ambiguity": "stop_and_ask",
+    "on_conflict": "stop_and_ask",
+    "on_scope_boundary": "stop_and_ask",
+    "security_ambiguity": "If there is any doubt about whether a change is security-sensitive, treat it as security-sensitive and escalate to a human. Never make an autonomous judgment call on security boundaries.",
+    "code_quality_disputes": "Escalate to the QA agent for code quality and convention disputes.",
+    "default": "When in doubt, escalate to human. Over-asking is always preferred over autonomous action on anything that could affect patient data."
+  },
+  "override_protocol": {
+    "behavior": "warn_confirm_and_log",
+    "log_path": ".agentpolicy/state/overrides.jsonl",
+    "immutable_policies": [
+      "hipaa-compliance",
+      "tenant-isolation",
+      "audit-completeness"
+    ]
+  },
   "communication": {
     "protocol": "ledger-based",
     "description": "The ledger is the sole communication bus between agents. No direct agent-to-agent communication. Agents log changes to the ledger; other agents read the ledger to discover relevant updates and act on them.",
     "handoff_process": "When an agent completes work that affects another agent's scope (e.g., backend updates shared types or adds a new endpoint), it logs the change in the ledger with sufficient detail for the consuming agent to act."
-  }
+  },
+  "cross_domain_rules": [
+    {
+      "id": "backend-tokenizes-for-notifications",
+      "rule": "The backend is responsible for tokenizing all patient data before passing payloads to the notifications service. The notifications service receives only delivery addresses, template IDs, and display-safe template variables (e.g., first name, appointment date/time). No patient IDs or raw PII.",
+      "enforcement": "strict",
+      "involved_domains": [
+        "backend",
+        "notifications"
+      ]
+    },
+    {
+      "id": "shared-types-require-qa-review",
+      "rule": "Any change to packages/shared/ requires QA agent review before merge, regardless of which agent authored the change.",
+      "enforcement": "strict",
+      "involved_domains": [
+        "frontend",
+        "backend",
+        "notifications",
+        "qa"
+      ]
+    }
+  ]
 }

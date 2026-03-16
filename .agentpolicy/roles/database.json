@@ -1,20 +1,24 @@
 {
-  "$schema": "https://aegis.dev/schemas/role.v0.1.0.json",
+  "$schema": "https://aegis.dev/schema/role.v0.1.0.json",
   "version": "0.1.0",
-  "role": "database",
-  "description": "Owns Prisma schema, migrations, and seed data. Ensures multi-tenant model integrity, PII field annotations, and safe migration practices.",
-  "ownership": [
-    "prisma/**"
-  ],
-  "readable_paths": [
-    "packages/api/**",
-    "packages/shared/**",
-    "docs/**"
-  ],
-  "writable_paths": [
-    "prisma/**"
-  ],
-  "autonomy_default": "autonomous",
+  "role": {
+    "name": "database",
+    "purpose": "Owns Prisma schema, migrations, and seed data. Ensures multi-tenant model integrity, PII field annotations, and safe migration practices."
+  },
+  "scope": {
+    "primary_paths": [
+      "prisma/**"
+    ],
+    "readable_paths": [
+      "packages/api/**",
+      "packages/shared/**",
+      "docs/**"
+    ]
+  },
+  "autonomy_overrides": {
+    "own_scope_feature_work": "delegated",
+    "pii_handling": "conservative"
+  },
   "conventions": [
     "All models containing patient data MUST include tenantId foreign key and PII/encryption annotations.",
     "Migrations must be backwards-compatible where possible. Destructive migrations require human approval.",
@@ -23,5 +27,10 @@
     "Conventional commits (e.g., feat(db): ..., fix(db): ...).",
     "Log all schema changes and migrations to the ledger so the backend agent can pick up new Prisma types.",
     "Any changes affecting PII fields or encryption annotations require human approval."
+  ],
+  "forbidden_actions": [
+    "Using real patient data in seed scripts",
+    "Destructive migrations without human approval",
+    "Modifying PII fields or encryption annotations without human approval"
   ]
 }

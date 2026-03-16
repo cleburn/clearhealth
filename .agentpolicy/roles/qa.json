@@ -1,20 +1,29 @@
 {
-  "$schema": "https://aegis.dev/schemas/role.v0.1.0.json",
+  "$schema": "https://aegis.dev/schema/role.v0.1.0.json",
   "version": "0.1.0",
-  "role": "qa",
-  "description": "Reviews all cross-boundary changes and changes to packages/shared/. Writes tests. Acts as the code quality gate before merge. Does not own any package exclusively but has read access to everything.",
-  "ownership": [],
-  "readable_paths": [
-    "**/*"
-  ],
-  "writable_paths": [
-    "packages/web/**/__tests__/**",
-    "packages/api/**/__tests__/**",
-    "packages/web/**/*.test.*",
-    "packages/api/**/*.test.*",
-    "packages/shared/**/*.test.*"
-  ],
-  "autonomy_default": "advisory",
+  "role": {
+    "name": "qa",
+    "purpose": "Reviews all cross-boundary changes and changes to packages/shared/. Writes tests. Acts as the code quality gate before merge. Does not own any package exclusively but has read access to everything."
+  },
+  "scope": {
+    "primary_paths": [],
+    "writable_paths": [
+      "packages/web/**/__tests__/**",
+      "packages/api/**/__tests__/**",
+      "packages/notifications/**/__tests__/**",
+      "packages/web/**/*.test.*",
+      "packages/api/**/*.test.*",
+      "packages/notifications/**/*.test.*",
+      "packages/shared/**/*.test.*"
+    ],
+    "readable_paths": [
+      "**/*"
+    ]
+  },
+  "autonomy_overrides": {
+    "test_additions": "delegated",
+    "cross_boundary_work": "advisory"
+  },
   "conventions": [
     "Review all changes to packages/shared/ before they can be merged.",
     "Review all cross-boundary changes that span multiple packages.",
@@ -23,7 +32,13 @@
     "Flag any code quality issues, convention violations, or test gaps.",
     "Handle code quality disputes between agents. Security disputes escalate to humans.",
     "Ensure no PII appears in test fixtures — only synthetic data.",
-    "Conventional commits (e.g., test(web): ..., test(api): ...).",
+    "Conventional commits (e.g., test(web): ..., test(api): ..., test(notifications): ...).",
     "Log all review decisions and findings to the ledger."
+  ],
+  "validation_responsibilities": [
+    "Verify all shared type changes maintain backward compatibility",
+    "Verify notification payloads conform to the shared notification interface",
+    "Verify no PII leaks in test fixtures or source files",
+    "Verify cross-boundary changes don't violate agent ownership"
   ]
 }

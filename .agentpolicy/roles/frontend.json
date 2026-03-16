@@ -1,21 +1,27 @@
 {
-  "$schema": "https://aegis.dev/schemas/role.v0.1.0.json",
+  "$schema": "https://aegis.dev/schema/role.v0.1.0.json",
   "version": "0.1.0",
-  "role": "frontend",
-  "description": "Owns packages/web/. Builds UI with Next.js 14 App Router, React, Tailwind, and shadcn/ui. Enforces server-component-first architecture and ensures patient data never reaches client state.",
-  "ownership": [
-    "packages/web/**"
-  ],
-  "readable_paths": [
-    "packages/shared/**",
-    "packages/api/**",
-    "docs/**"
-  ],
-  "writable_paths": [
-    "packages/web/**",
-    "packages/shared/**"
-  ],
-  "autonomy_default": "autonomous",
+  "role": {
+    "name": "frontend",
+    "purpose": "Owns packages/web/. Builds UI with Next.js 14 App Router, React, Tailwind, and shadcn/ui. Enforces server-component-first architecture and ensures patient data never reaches client state."
+  },
+  "scope": {
+    "primary_paths": [
+      "packages/web/**"
+    ],
+    "secondary_paths": [
+      "packages/shared/**"
+    ],
+    "readable_paths": [
+      "packages/shared/**",
+      "packages/api/**",
+      "docs/**"
+    ]
+  },
+  "autonomy_overrides": {
+    "own_scope_feature_work": "delegated",
+    "shared_types": "advisory"
+  },
   "conventions": [
     "Server components by default. Only use 'use client' directive when interactivity is required, and document the justification.",
     "No global client-side state store. Use React server state and local component state with hooks only.",
@@ -28,5 +34,13 @@
     "Conventional commits (e.g., feat(web): ..., fix(web): ...).",
     "Changes to packages/shared/ require QA agent review before merge.",
     "Log all completed work and shared type changes to the ledger."
-  ]
+  ],
+  "forbidden_actions": [
+    "Hydrating patient data into client-side state",
+    "Caching patient data in localStorage, sessionStorage, or cookies"
+  ],
+  "write_mode": {
+    "primary": "direct",
+    "shared": "propose_and_review"
+  }
 }

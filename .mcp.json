@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "aegis": {
+      "command": "node",
+      "args": ["/Users/cleburnwalker/repos/aegis-mcp/dist/index.js", "--project", ".", "--role", "backend"]
+    }
+  }
+}

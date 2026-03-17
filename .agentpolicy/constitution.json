@@ -127,6 +127,12 @@
       "statement": "Code clarity over cleverness. Prefer readable, explicit implementations over terse or abstract patterns.",
       "priority": 6,
       "enforcement": "preferred"
+    },
+    {
+      "name": "notification-data-ephemerality",
+      "statement": "Notification delivery addresses (email, phone) must never be persisted beyond the lifetime of a single delivery attempt. No system component may log, cache, store, or otherwise retain delivery addresses after the delivery attempt completes or fails.",
+      "priority": 8,
+      "enforcement": "strict"
     }
   ],
   "build_commands": {

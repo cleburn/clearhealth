@@ -193,8 +193,8 @@
         "action": "never_generate"
       },
       {
-        "pattern": "Delivery addresses (email/phone) logged or stored by the notifications service beyond the lifetime of a single delivery attempt",
-        "reason": "Data minimization — the notifications service is a delivery-only mechanism and must not retain delivery addresses",
+        "pattern": "Delivery addresses (email/phone) logged or stored by any system component beyond the lifetime of a single delivery attempt",
+        "reason": "Data minimization — delivery addresses are ephemeral and must not be retained beyond a single delivery attempt by any component",
         "action": "never_generate"
       }
     ]
@@ -281,35 +281,20 @@
     {
       "id": "synthetic-test-data",
       "scope": "global",
-      "rule": "All test data must be synthetic. Never use real patient data, SSNs, or PII in tests, seeds, or fixtures.",
+      "rule": "All test fixtures must use synthetic/fake data only. No real PII, SSNs, or patient data in tests.",
       "enforcement": "strict"
     },
     {
-      "id": "notifications-no-direct-data-access",
-      "scope": "notifications",
-      "rule": "The notifications service must never access patient records directly. All patient data comes through shared interfaces, pre-tokenized by the backend.",
-      "enforcement": "strict"
-    },
-    {
-      "id": "notifications-no-delivery-address-retention",
-      "scope": "notifications",
-      "rule": "The notifications service must never log or store delivery addresses (email/phone) beyond the lifetime of a single delivery attempt.",
-      "enforcement": "strict"
-    },
-    {
-      "id": "ledger-communication",
+      "id": "ephemeral-delivery-addresses",
       "scope": "global",
-      "rule": "The ledger is the sole communication bus between agents. No direct agent-to-agent communication. Agents log changes to the ledger; other agents read it to discover relevant updates.",
+      "rule": "No system component may persist, log, cache, or store notification delivery addresses (email, phone) beyond the lifetime of a single delivery attempt.",
       "enforcement": "strict"
     }
   ],
   "escalation": {
     "on_ambiguity": "stop_and_ask",
-    "on_conflict": "stop_and_ask",
-    "on_scope_boundary": "stop_and_ask",
-    "security_ambiguity": "If there is any doubt about whether a change is security-sensitive, treat it as security-sensitive and escalate to a human. Never make an autonomous judgment call on security boundaries.",
-    "code_quality_disputes": "Escalate to the QA agent for code quality and convention disputes.",
-    "default": "When in doubt, escalate to human. Over-asking is always preferred over autonomous action on anything that could affect patient data."
+    "on_conflict": "principles_win",
+    "on_scope_boundary": "stop_and_ask"
   },
   "override_protocol": {
     "behavior": "warn_confirm_and_log",
@@ -317,34 +302,8 @@
     "immutable_policies": [
       "hipaa-compliance",
       "tenant-isolation",
-      "audit-completeness"
+      "audit-completeness",
+      "notification-data-ephemerality"
     ]
-  },
-  "communication": {
-    "protocol": "ledger-based",
-    "description": "The ledger is the sole communication bus between agents. No direct agent-to-agent communication. Agents log changes to the ledger; other agents read the ledger to discover relevant updates and act on them.",
-    "handoff_process": "When an agent completes work that affects another agent's scope (e.g., backend updates shared types or adds a new endpoint), it logs the change in the ledger with sufficient detail for the consuming agent to act."
-  },
-  "cross_domain_rules": [
-    {
-      "id": "backend-tokenizes-for-notifications",
-      "rule": "The backend is responsible for tokenizing all patient data before passing payloads to the notifications service. The notifications service receives only delivery addresses, template IDs, and display-safe template variables (e.g., first name, appointment date/time). No patient IDs or raw PII.",
-      "enforcement": "strict",
-      "involved_domains": [
-        "backend",
-        "notifications"
-      ]
-    },
-    {
-      "id": "shared-types-require-qa-review",
-      "rule": "Any change to packages/shared/ requires QA agent review before merge, regardless of which agent authored the change.",
-      "enforcement": "strict",
-      "involved_domains": [
-        "frontend",
-        "backend",
-        "notifications",
-        "qa"
-      ]
-    }
-  ]
+  }
 }

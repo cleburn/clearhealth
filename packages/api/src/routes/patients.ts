@@ -327,13 +327,11 @@ patientRoutes.post(
 
       const parsed = CreatePatientSchema.safeParse(req.body);
       if (!parsed.success) {
-        res
-          .status(400)
-          .json({
-            error: "Invalid input",
-            code: "VALIDATION_ERROR",
-            details: parsed.error.issues,
-          });
+        res.status(400).json({
+          error: "Invalid input",
+          code: "VALIDATION_ERROR",
+          details: parsed.error.issues,
+        });
         return;
       }
 
@@ -345,12 +343,10 @@ patientRoutes.post(
       });
 
       if (existingUser) {
-        res
-          .status(409)
-          .json({
-            error: "A user with this email already exists",
-            code: "CONFLICT",
-          });
+        res.status(409).json({
+          error: "A user with this email already exists",
+          code: "CONFLICT",
+        });
         return;
       }
 
@@ -438,13 +434,11 @@ patientRoutes.patch(
 
       const parsed = UpdatePatientSchema.safeParse(req.body);
       if (!parsed.success) {
-        res
-          .status(400)
-          .json({
-            error: "Invalid input",
-            code: "VALIDATION_ERROR",
-            details: parsed.error.issues,
-          });
+        res.status(400).json({
+          error: "Invalid input",
+          code: "VALIDATION_ERROR",
+          details: parsed.error.issues,
+        });
         return;
       }
 
@@ -477,12 +471,10 @@ patientRoutes.patch(
           return;
         }
       } else if (req.user.role === "DOCTOR") {
-        res
-          .status(403)
-          .json({
-            error: "Doctors cannot update patient records",
-            code: "FORBIDDEN",
-          });
+        res.status(403).json({
+          error: "Doctors cannot update patient records",
+          code: "FORBIDDEN",
+        });
         return;
       }
 

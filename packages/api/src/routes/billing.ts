@@ -57,12 +57,10 @@ billingRoutes.get("/", async (req: AuthenticatedRequest, res: Response) => {
         where: { userId: req.user.userId },
       });
       if (!patient) {
-        res
-          .status(200)
-          .json({
-            data: [],
-            pagination: { page, limit, total: 0, totalPages: 0 },
-          });
+        res.status(200).json({
+          data: [],
+          pagination: { page, limit, total: 0, totalPages: 0 },
+        });
         return;
       }
       whereClause.patientId = patient.id;
@@ -72,12 +70,10 @@ billingRoutes.get("/", async (req: AuthenticatedRequest, res: Response) => {
         where: { userId: req.user.userId },
       });
       if (!doctor) {
-        res
-          .status(200)
-          .json({
-            data: [],
-            pagination: { page, limit, total: 0, totalPages: 0 },
-          });
+        res.status(200).json({
+          data: [],
+          pagination: { page, limit, total: 0, totalPages: 0 },
+        });
         return;
       }
       whereClause.appointment = { doctorId: doctor.id };
@@ -189,13 +185,11 @@ billingRoutes.post(
 
       const parsed = SubmitClaimSchema.safeParse(req.body);
       if (!parsed.success) {
-        res
-          .status(400)
-          .json({
-            error: "Invalid input",
-            code: "VALIDATION_ERROR",
-            details: parsed.error.issues,
-          });
+        res.status(400).json({
+          error: "Invalid input",
+          code: "VALIDATION_ERROR",
+          details: parsed.error.issues,
+        });
         return;
       }
 
@@ -377,12 +371,10 @@ billingRoutes.get(
 
       const queryParsed = ReportQuerySchema.safeParse(req.query);
       if (!queryParsed.success) {
-        res
-          .status(400)
-          .json({
-            error: "Invalid query parameters",
-            code: "VALIDATION_ERROR",
-          });
+        res.status(400).json({
+          error: "Invalid query parameters",
+          code: "VALIDATION_ERROR",
+        });
         return;
       }
 

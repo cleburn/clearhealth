@@ -116,12 +116,10 @@ appointmentRoutes.get("/", async (req: AuthenticatedRequest, res: Response) => {
         where: { userId: req.user.userId },
       });
       if (!patient) {
-        res
-          .status(200)
-          .json({
-            data: [],
-            pagination: { page, limit, total: 0, totalPages: 0 },
-          });
+        res.status(200).json({
+          data: [],
+          pagination: { page, limit, total: 0, totalPages: 0 },
+        });
         return;
       }
       whereClause.patientId = patient.id;
@@ -130,12 +128,10 @@ appointmentRoutes.get("/", async (req: AuthenticatedRequest, res: Response) => {
         where: { userId: req.user.userId },
       });
       if (!doctor) {
-        res
-          .status(200)
-          .json({
-            data: [],
-            pagination: { page, limit, total: 0, totalPages: 0 },
-          });
+        res.status(200).json({
+          data: [],
+          pagination: { page, limit, total: 0, totalPages: 0 },
+        });
         return;
       }
       whereClause.doctorId = doctor.id;
@@ -248,13 +244,11 @@ appointmentRoutes.post(
 
       const parsed = CreateAppointmentSchema.safeParse(req.body);
       if (!parsed.success) {
-        res
-          .status(400)
-          .json({
-            error: "Invalid input",
-            code: "VALIDATION_ERROR",
-            details: parsed.error.issues,
-          });
+        res.status(400).json({
+          error: "Invalid input",
+          code: "VALIDATION_ERROR",
+          details: parsed.error.issues,
+        });
         return;
       }
 
@@ -266,12 +260,10 @@ appointmentRoutes.post(
           where: { userId: req.user.userId },
         });
         if (!patient || patient.id !== data.patientId) {
-          res
-            .status(403)
-            .json({
-              error: "Patients can only book their own appointments",
-              code: "FORBIDDEN",
-            });
+          res.status(403).json({
+            error: "Patients can only book their own appointments",
+            code: "FORBIDDEN",
+          });
           return;
         }
       }
@@ -315,12 +307,10 @@ appointmentRoutes.post(
         data.duration,
       );
       if (!isAvailable) {
-        res
-          .status(409)
-          .json({
-            error: "Doctor is not available at the requested time",
-            code: "CONFLICT",
-          });
+        res.status(409).json({
+          error: "Doctor is not available at the requested time",
+          code: "CONFLICT",
+        });
         return;
       }
 
@@ -379,13 +369,11 @@ appointmentRoutes.patch(
 
       const parsed = UpdateAppointmentSchema.safeParse(req.body);
       if (!parsed.success) {
-        res
-          .status(400)
-          .json({
-            error: "Invalid input",
-            code: "VALIDATION_ERROR",
-            details: parsed.error.issues,
-          });
+        res.status(400).json({
+          error: "Invalid input",
+          code: "VALIDATION_ERROR",
+          details: parsed.error.issues,
+        });
         return;
       }
 
@@ -411,22 +399,18 @@ appointmentRoutes.patch(
         }
         // Patients can only cancel
         if (parsed.data.status && parsed.data.status !== "CANCELLED") {
-          res
-            .status(403)
-            .json({
-              error: "Patients can only cancel appointments",
-              code: "FORBIDDEN",
-            });
+          res.status(403).json({
+            error: "Patients can only cancel appointments",
+            code: "FORBIDDEN",
+          });
           return;
         }
         if (parsed.data.scheduledAt) {
-          res
-            .status(403)
-            .json({
-              error:
-                "Patients cannot reschedule directly. Please contact the clinic.",
-              code: "FORBIDDEN",
-            });
+          res.status(403).json({
+            error:
+              "Patients cannot reschedule directly. Please contact the clinic.",
+            code: "FORBIDDEN",
+          });
           return;
         }
       } else if (req.user.role === "DOCTOR") {
@@ -462,12 +446,10 @@ appointmentRoutes.patch(
           appointmentId,
         );
         if (!isAvailable) {
-          res
-            .status(409)
-            .json({
-              error: "Doctor is not available at the requested time",
-              code: "CONFLICT",
-            });
+          res.status(409).json({
+            error: "Doctor is not available at the requested time",
+            code: "CONFLICT",
+          });
           return;
         }
       }
@@ -585,13 +567,11 @@ appointmentRoutes.post(
 
       const parsed = CompleteAppointmentSchema.safeParse(req.body);
       if (!parsed.success) {
-        res
-          .status(400)
-          .json({
-            error: "Invalid input",
-            code: "VALIDATION_ERROR",
-            details: parsed.error.issues,
-          });
+        res.status(400).json({
+          error: "Invalid input",
+          code: "VALIDATION_ERROR",
+          details: parsed.error.issues,
+        });
         return;
       }
 

@@ -70,13 +70,11 @@ authRoutes.post("/login", async (req: Request, res: Response) => {
   try {
     const parsed = LoginSchema.safeParse(req.body);
     if (!parsed.success) {
-      res
-        .status(400)
-        .json({
-          error: "Invalid input",
-          code: "VALIDATION_ERROR",
-          details: parsed.error.issues,
-        });
+      res.status(400).json({
+        error: "Invalid input",
+        code: "VALIDATION_ERROR",
+        details: parsed.error.issues,
+      });
       return;
     }
 
@@ -94,12 +92,10 @@ authRoutes.post("/login", async (req: Request, res: Response) => {
         email: "[FILTERED]",
         ip: ipAddress,
       });
-      res
-        .status(429)
-        .json({
-          error: "Account temporarily locked. Try again later.",
-          code: "ACCOUNT_LOCKED",
-        });
+      res.status(429).json({
+        error: "Account temporarily locked. Try again later.",
+        code: "ACCOUNT_LOCKED",
+      });
       return;
     }
 
@@ -261,12 +257,10 @@ authRoutes.post("/refresh", async (req: Request, res: Response) => {
     const storedData = await redis.get(refreshKey);
     if (!storedData) {
       logger.warn("Invalid refresh token used", { ip: req.ip });
-      res
-        .status(401)
-        .json({
-          error: "Invalid refresh token",
-          code: "INVALID_REFRESH_TOKEN",
-        });
+      res.status(401).json({
+        error: "Invalid refresh token",
+        code: "INVALID_REFRESH_TOKEN",
+      });
       return;
     }
 
@@ -420,13 +414,11 @@ authRoutes.post("/reset-password", async (req: Request, res: Response) => {
   try {
     const parsed = ResetPasswordSchema.safeParse(req.body);
     if (!parsed.success) {
-      res
-        .status(400)
-        .json({
-          error: "Invalid input",
-          code: "VALIDATION_ERROR",
-          details: parsed.error.issues,
-        });
+      res.status(400).json({
+        error: "Invalid input",
+        code: "VALIDATION_ERROR",
+        details: parsed.error.issues,
+      });
       return;
     }
 
@@ -436,12 +428,10 @@ authRoutes.post("/reset-password", async (req: Request, res: Response) => {
     // Look up token in Redis
     const userId = await redis.get(resetKey);
     if (!userId) {
-      res
-        .status(400)
-        .json({
-          error: "Invalid or expired reset token",
-          code: "INVALID_TOKEN",
-        });
+      res.status(400).json({
+        error: "Invalid or expired reset token",
+        code: "INVALID_TOKEN",
+      });
       return;
     }
 

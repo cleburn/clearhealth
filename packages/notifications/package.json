@@ -1,0 +1,16 @@
+{
+  "name": "@clearhealth/notifications",
+  "version": "1.0.0",
+  "description": "Delivery-only service for SMS and email appointment reminders",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "echo \"No tests yet\" && exit 0"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  }
+}

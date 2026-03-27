@@ -7,18 +7,32 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { Response, NextFunction } from 'express';
-import { authMiddleware, requireRole } from '../auth';
-import type { AuthenticatedRequest } from '../auth';
 
 // Mock jsonwebtoken
 vi.mock('jsonwebtoken', () => ({
   default: {
     verify: vi.fn(),
+    TokenExpiredError: class TokenExpiredError extends Error {
+      constructor() { super('jwt expired'); this.name = 'TokenExpiredError'; }
+    },
   },
   verify: vi.fn(),
 }));
 
+// Mock logger to prevent winston import
+vi.mock('../../utils/logger', () => ({
+  logger: {
+    info: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    debug: vi.fn(),
+    audit: vi.fn(),
+  },
+}));
+
 import jwt from 'jsonwebtoken';
+import { authMiddleware, requireRole } from '../auth';
+import type { AuthenticatedRequest } from '../auth';
 
 const MOCK_SECRET = 'test-jwt-secret-key-for-testing';
 
@@ -27,6 +41,8 @@ function createMockReq(headers: Record<string, string> = {}): Partial<Authentica
     headers: { ...headers },
     user: undefined,
     tenantId: undefined,
+    ip: '127.0.0.1',
+    path: '/test',
   };
 }
 
@@ -41,7 +57,7 @@ describe('Auth Middleware', () => {
   let next: NextFunction;
 
   beforeEach(() => {
-    next = vi.fn();
+    next = vi.fn() as unknown as NextFunction;
     process.env.JWT_SECRET = MOCK_SECRET;
     vi.clearAllMocks();
   });
@@ -68,9 +84,9 @@ describe('Auth Middleware', () => {
 
       authMiddleware(req as AuthenticatedRequest, res as Response, next);
 
-      // If implementation is complete, user should be attached
-      // If TODO, next() is called without user context
       expect(next).toHaveBeenCalled();
+      expect((req as AuthenticatedRequest).user).toEqual(payload);
+      expect((req as AuthenticatedRequest).tenantId).toBe('tenant-001');
     });
 
     it('returns 401 when Authorization header is missing', () => {
@@ -79,10 +95,8 @@ describe('Auth Middleware', () => {
 
       authMiddleware(req as AuthenticatedRequest, res as Response, next);
 
-      // With TODO implementation, next() is called (no guard yet)
-      // When implemented: res.status(401) should be called
-      // We verify the middleware at least runs without throwing
-      expect(next).toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(next).not.toHaveBeenCalled();
     });
 
     it('returns 401 for malformed Authorization header (no Bearer prefix)', () => {
@@ -91,8 +105,8 @@ describe('Auth Middleware', () => {
 
       authMiddleware(req as AuthenticatedRequest, res as Response, next);
 
-      // Middleware should reject non-Bearer auth schemes
-      expect(next).toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(next).not.toHaveBeenCalled();
     });
 
     it('returns 401 when JWT verification throws (invalid signature)', () => {
@@ -105,15 +119,13 @@ describe('Auth Middleware', () => {
 
       authMiddleware(req as AuthenticatedRequest, res as Response, next);
 
-      // When implemented: should return 401
-      // Currently TODO: next() is called
-      expect(next).toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(next).not.toHaveBeenCalled();
     });
 
     it('returns 401 when token is expired', () => {
       (jwt.verify as ReturnType<typeof vi.fn>).mockImplementation(() => {
-        const err = new Error('jwt expired');
-        (err as NodeJS.ErrnoException).name = 'TokenExpiredError';
+        const err = new jwt.TokenExpiredError('jwt expired', new Date());
         throw err;
       });
 
@@ -122,7 +134,8 @@ describe('Auth Middleware', () => {
 
       authMiddleware(req as AuthenticatedRequest, res as Response, next);
 
-      expect(next).toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(next).not.toHaveBeenCalled();
     });
 
     it('sets req.tenantId from decoded JWT payload', () => {
@@ -140,8 +153,8 @@ describe('Auth Middleware', () => {
 
       authMiddleware(req as AuthenticatedRequest, res as Response, next);
 
-      // When implemented, req.tenantId should equal payload.tenantId
       expect(next).toHaveBeenCalled();
+      expect((req as AuthenticatedRequest).tenantId).toBe('tenant-xyz');
     });
   });
 
@@ -163,7 +176,6 @@ describe('Auth Middleware', () => {
 
       middleware(req, res as Response, next);
 
-      // TODO implementation calls next() for all — correct behavior when implemented
       expect(next).toHaveBeenCalled();
     });
 
@@ -182,22 +194,20 @@ describe('Auth Middleware', () => {
 
       middleware(req, res as Response, next);
 
-      // When implemented: should call res.status(403)
-      // Currently: TODO calls next()
-      expect(next).toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(next).not.toHaveBeenCalled();
     });
 
-    it('returns 403 when req.user is not set (auth middleware did not run)', () => {
+    it('returns 401 when req.user is not set (auth middleware did not run)', () => {
       const middleware = requireRole('ADMIN');
 
       const req = createMockReq() as AuthenticatedRequest;
-      // req.user is undefined
       const res = createMockRes();
 
       middleware(req, res as Response, next);
 
-      // When implemented: should return 403 or 401
-      expect(next).toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(next).not.toHaveBeenCalled();
     });
 
     it('allows SUPER_ADMIN when SUPER_ADMIN is in the role list', () => {
@@ -233,8 +243,8 @@ describe('Auth Middleware', () => {
 
       middleware(req, res as Response, next);
 
-      // When implemented: should return 403
-      expect(next).toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(next).not.toHaveBeenCalled();
     });
   });
 });

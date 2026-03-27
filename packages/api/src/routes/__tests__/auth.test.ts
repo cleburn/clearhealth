@@ -17,6 +17,7 @@ vi.mock('../../lib/prisma', () => ({
       findFirst: vi.fn(),
       update: vi.fn(),
     },
+    auditLog: { create: vi.fn().mockResolvedValue({}) },
   },
 }));
 
@@ -27,6 +28,11 @@ vi.mock('ioredis', () => {
     set: vi.fn(),
     del: vi.fn(),
     setex: vi.fn(),
+    incr: vi.fn().mockResolvedValue(1),
+    expire: vi.fn().mockResolvedValue(1),
+    quit: vi.fn().mockResolvedValue('OK'),
+    on: vi.fn().mockReturnThis(),
+    connect: vi.fn().mockResolvedValue(undefined),
   }));
   return { default: Redis };
 });
@@ -53,7 +59,7 @@ vi.mock('jsonwebtoken', () => ({
 
 // Mock notification service
 vi.mock('../../services/notifications', () => ({
-  sendPasswordResetEmail: vi.fn().mockResolvedValue(undefined),
+  sendPasswordReset: vi.fn().mockResolvedValue(undefined),
 }));
 
 // Mock logger
@@ -73,6 +79,10 @@ vi.mock('../../middleware/pii-guard', () => ({
 }));
 
 import { authRoutes } from '../auth';
+import { prisma } from '../../lib/prisma';
+import { redis } from '../../lib/redis';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
 
 // Synthetic test data
 const SYNTHETIC_USER = {
@@ -103,8 +113,26 @@ describe('Auth Routes', () => {
   let app: express.Express;
 
   beforeEach(() => {
+    process.env.JWT_SECRET = 'test-jwt-secret-for-auth-routes';
     app = createApp();
     vi.clearAllMocks();
+
+    // Re-configure mocks cleared by clearAllMocks
+    (jwt.sign as ReturnType<typeof vi.fn>).mockReturnValue('synthetic-jwt-access-token');
+
+    // Default: user exists and password matches for success path
+    (prisma.user.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(SYNTHETIC_USER);
+    (prisma.user.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(SYNTHETIC_USER);
+    (prisma.user.update as ReturnType<typeof vi.fn>).mockResolvedValue(SYNTHETIC_USER);
+    (prisma.auditLog.create as ReturnType<typeof vi.fn>).mockResolvedValue({});
+    (bcrypt.compare as ReturnType<typeof vi.fn>).mockResolvedValue(true);
+
+    // Configure Redis mock defaults
+    (redis.get as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+    (redis.set as ReturnType<typeof vi.fn>).mockResolvedValue('OK');
+    (redis.del as ReturnType<typeof vi.fn>).mockResolvedValue(1);
+    (redis.incr as ReturnType<typeof vi.fn>).mockResolvedValue(1);
+    (redis.expire as ReturnType<typeof vi.fn>).mockResolvedValue(1);
   });
 
   // ── POST /auth/login ───────────────────────────────────────────────
@@ -127,6 +155,7 @@ describe('Auth Routes', () => {
     });
 
     it('returns 401 or 501 with invalid password', async () => {
+      (bcrypt.compare as ReturnType<typeof vi.fn>).mockResolvedValue(false);
       const res = await request(app)
         .post('/api/v1/auth/login')
         .send({
@@ -138,6 +167,7 @@ describe('Auth Routes', () => {
     });
 
     it('returns 401 or 501 for non-existent user', async () => {
+      (prisma.user.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(null);
       const res = await request(app)
         .post('/api/v1/auth/login')
         .send({
@@ -172,6 +202,10 @@ describe('Auth Routes', () => {
 
   describe('POST /api/v1/auth/refresh', () => {
     it('returns 501 or new tokens on valid refresh token', async () => {
+      // Configure redis to return stored refresh token data
+      (redis.get as ReturnType<typeof vi.fn>).mockResolvedValue(
+        JSON.stringify({ userId: 'usr-syn-001', tenantId: 'tenant-syn-001', role: 'ADMIN' })
+      );
       const res = await request(app)
         .post('/api/v1/auth/refresh')
         .send({ refreshToken: 'synthetic-valid-refresh-token' });
@@ -262,6 +296,7 @@ describe('Auth Routes', () => {
 
   describe('Account lockout after failed attempts', () => {
     it('locks account after 5 failed login attempts', async () => {
+      (bcrypt.compare as ReturnType<typeof vi.fn>).mockResolvedValue(false);
       // When implemented: after 5 failed attempts, account should be locked
       for (let i = 0; i < 5; i++) {
         await request(app)
@@ -279,12 +314,12 @@ describe('Auth Routes', () => {
           password: 'SyntheticPassword123!', // Even correct password should fail
         });
 
-      // When implemented: should return 401 with lockout message
-      // While TODO: returns 501
-      expect([401, 423, 501]).toContain(res.status);
+      // When implemented: should return 401 with lockout message (or 429 for rate limit)
+      expect([401, 423, 429, 501]).toContain(res.status);
     });
 
     it('tracks failed attempt count per user', async () => {
+      (bcrypt.compare as ReturnType<typeof vi.fn>).mockResolvedValue(false);
       const res = await request(app)
         .post('/api/v1/auth/login')
         .send({

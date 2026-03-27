@@ -111,7 +111,7 @@ export async function verifyInsurance(
     data: {
       patientId,
       status: result.status,
-      response: result.rawResponse,
+      response: result.rawResponse as unknown as Record<string, string>,
       expiresAt,
     },
   });

@@ -16,12 +16,10 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
-import { patientApi, appointmentApi } from '@/lib/api-client';
+import { patientApi } from '@/lib/api-client';
 import { NavHeader } from '@/components/nav-header';
 import { PatientSummaryCard } from '@/components/data-display/patient-summary-card';
-import { AppointmentCard } from '@/components/data-display/appointment-card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/useToast';
@@ -30,7 +28,7 @@ import type { Appointment } from '@clearhealth/shared/types/appointment';
 import { Loader2, Search, FileText } from 'lucide-react';
 
 export default function RecordsPage() {
-  const { user, isLoading, isAuthenticated, isPatient, isAdmin } = useAuth();
+  const { user, isLoading, isAuthenticated, isPatient } = useAuth();
   const router = useRouter();
   const [patients, setPatients] = useState<PatientSummary[]>([]);
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);

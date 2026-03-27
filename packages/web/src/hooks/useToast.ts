@@ -20,7 +20,7 @@ let toastCounter = 0;
 
 /** Global toast state for cross-component access */
 let globalAddToast: ((toast: Omit<ToastMessage, 'id'>) => void) | null = null;
-let globalDismissToast: ((id: string) => void) | null = null;
+let _globalDismissToast: ((id: string) => void) | null = null;
 
 export function useToast() {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
@@ -39,7 +39,7 @@ export function useToast() {
 
   // Register global accessors
   globalAddToast = addToast;
-  globalDismissToast = dismissToast;
+  _globalDismissToast = dismissToast;
 
   return { toasts, addToast, dismissToast };
 }

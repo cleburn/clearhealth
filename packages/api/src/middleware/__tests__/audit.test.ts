@@ -60,7 +60,7 @@ describe('Audit Middleware', () => {
   let next: NextFunction;
 
   beforeEach(() => {
-    next = vi.fn();
+    next = vi.fn() as unknown as NextFunction;
     vi.clearAllMocks();
   });
 

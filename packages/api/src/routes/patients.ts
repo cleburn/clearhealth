@@ -386,7 +386,7 @@ patientRoutes.patch('/:id', async (req: AuthenticatedRequest, res: Response) => 
 
     const patient = await prisma.patient.findUnique({
       where: { id: patientId },
-      include: { user: { select: { tenantId: true, userId: true, id: true } } },
+      include: { user: { select: { tenantId: true, id: true } } },
     });
 
     if (!patient || patient.user.tenantId !== tenantId) {

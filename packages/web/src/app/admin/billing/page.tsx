@@ -118,7 +118,7 @@ export default function BillingPage() {
   const pendingCount = records.filter((r) => r.status === ClaimStatus.PENDING).length;
   const submittedCount = records.filter((r) => r.status === ClaimStatus.SUBMITTED).length;
   const approvedCount = records.filter((r) => r.status === ClaimStatus.APPROVED).length;
-  const deniedCount = records.filter((r) => r.status === ClaimStatus.DENIED).length;
+  const _deniedCount = records.filter((r) => r.status === ClaimStatus.DENIED).length;
 
   return (
     <div>

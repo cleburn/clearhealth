@@ -168,7 +168,7 @@ describe('PII Guard Middleware', () => {
         json: jsonFn,
         status: vi.fn().mockReturnThis(),
       } as unknown as Partial<Response>;
-      next = vi.fn();
+      next = vi.fn() as unknown as NextFunction;
     });
 
     it('calls next() to continue the middleware chain', () => {

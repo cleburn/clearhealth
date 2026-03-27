@@ -56,7 +56,7 @@ function redactObject(obj: unknown): unknown {
 }
 
 /** Log levels supported by the logger */
-type LogLevel = 'error' | 'warn' | 'info' | 'debug' | 'audit';
+type _LogLevel = 'error' | 'warn' | 'info' | 'debug' | 'audit';
 
 /** Logger interface for the application */
 interface Logger {

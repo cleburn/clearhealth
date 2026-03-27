@@ -33,12 +33,12 @@ import {
 import Link from 'next/link';
 
 export default function AdminPage() {
-  const { user, isLoading, isAuthenticated, isAdmin } = useAuth();
+  const { isLoading, isAuthenticated, isAdmin } = useAuth();
   const router = useRouter();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [billingReport, setBillingReport] = useState<BillingReport | null>(null);
   const [patientCount, setPatientCount] = useState(0);
-  const [dataLoading, setDataLoading] = useState(true);
+  const [, setDataLoading] = useState(true);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -85,7 +85,7 @@ export default function AdminPage() {
     );
   }
 
-  const todayAppts = appointments.filter((a) => {
+  const _todayAppts = appointments.filter((a) => {
     const date = new Date(a.scheduledAt);
     const today = new Date();
     return date.toDateString() === today.toDateString();

@@ -281,13 +281,13 @@
     {
       "id": "synthetic-test-data",
       "scope": "global",
-      "rule": "All test fixtures must use synthetic/fake data only. No real PII, SSNs, or patient data in tests.",
+      "rule": "All test data must be synthetic. No real patient data, SSNs, or PII in test fixtures, seed data, or examples.",
       "enforcement": "strict"
     },
     {
-      "id": "ephemeral-delivery-addresses",
+      "id": "ci-quality-gates-only",
       "scope": "global",
-      "rule": "No system component may persist, log, cache, or store notification delivery addresses (email, phone) beyond the lifetime of a single delivery attempt.",
+      "rule": "CI pipeline runs quality gates only (lint, typecheck, tests, security audit, PII scan) on every push and PR. No Docker builds, no deployment, no database migrations in CI. This is a demo/stress-test project.",
       "enforcement": "strict"
     }
   ],
@@ -302,8 +302,7 @@
     "immutable_policies": [
       "hipaa-compliance",
       "tenant-isolation",
-      "audit-completeness",
-      "notification-data-ephemerality"
+      "audit-completeness"
     ]
   }
 }

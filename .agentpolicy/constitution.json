@@ -38,7 +38,7 @@
       },
       {
         "path": ".github/workflows",
-        "purpose": "CI/CD pipelines — lint, typecheck, test, security audit, PII scan gates, and deployment workflows.",
+        "purpose": "CI quality gate pipeline — lint, typecheck, test, security audit, PII scan. No deployment workflows. Quality gates run on every push and PR.",
         "owner": "devops"
       },
       {
@@ -56,6 +56,11 @@
       {
         "path": ".env.example",
         "purpose": "Environment variable template with no real secrets",
+        "source": "devops"
+      },
+      {
+        "path": ".github/workflows/ci.yml",
+        "purpose": "CI quality gate pipeline that runs all five required checks (lint, typecheck, tests, security audit, PII scan) on every push and pull request. No Docker builds, no deployment, no database migrations — quality gates only.",
         "source": "devops"
       }
     ]

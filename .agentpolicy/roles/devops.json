@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "role": {
     "name": "devops",
-    "purpose": "Owns infrastructure configuration, CI/CD pipelines, Docker configs, and deployment. All changes require human approval."
+    "purpose": "Owns infrastructure configuration, CI/CD pipelines, Docker configs, and deployment. All changes require human approval. For this demo/stress-test project, the active responsibility is maintaining the CI quality gate pipeline — no deployment infrastructure is in use."
   },
   "scope": {
     "primary_paths": [
@@ -22,7 +22,8 @@
   },
   "conventions": [
     "All infrastructure changes require explicit human approval before execution.",
-    "CI pipeline must maintain all five required checks: lint, typecheck, tests, security audit, PII scan.",
+    "CI pipeline must run all five required quality gate checks on every push and PR: lint, typecheck, tests, security audit, PII scan.",
+    "CI pipeline is quality-gates-only — no Docker builds, no ECR pushes, no ECS deploys, no database migrations. This is a demo/stress-test project.",
     "Never store secrets in config files. Use environment variables and secret management services.",
     "Docker images must not contain development dependencies or debug tools in production builds.",
     "Conventional commits (e.g., feat(infra): ..., fix(ci): ...).",
@@ -30,6 +31,7 @@
   ],
   "forbidden_actions": [
     "Storing secrets in config files or source code",
-    "Deploying without human approval"
+    "Deploying without human approval",
+    "Adding deployment steps to the CI pipeline — CI is quality gates only for this project"
   ]
 }

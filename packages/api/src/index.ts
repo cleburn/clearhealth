@@ -12,63 +12,80 @@
  * - PII guard scrubs sensitive data from responses and error output
  */
 
-import express from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
+import express from "express";
+import cors from "cors";
+import helmet from "helmet";
 
-import { authMiddleware } from './middleware/auth';
-import { auditMiddleware } from './middleware/audit';
-import { piiGuardMiddleware } from './middleware/pii-guard';
-import { patientRoutes } from './routes/patients';
-import { appointmentRoutes } from './routes/appointments';
-import { billingRoutes } from './routes/billing';
-import { authRoutes } from './routes/auth';
-import { logger } from './utils/logger';
-import { prisma } from './lib/prisma';
-import { redis } from './lib/redis';
+import { authMiddleware } from "./middleware/auth";
+import { auditMiddleware } from "./middleware/audit";
+import { piiGuardMiddleware } from "./middleware/pii-guard";
+import { patientRoutes } from "./routes/patients";
+import { appointmentRoutes } from "./routes/appointments";
+import { billingRoutes } from "./routes/billing";
+import { authRoutes } from "./routes/auth";
+import { logger } from "./utils/logger";
+import { prisma } from "./lib/prisma";
+import { redis } from "./lib/redis";
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
 // --- Global middleware ---
 app.use(helmet());
-app.use(cors({
-  origin: process.env.CORS_ORIGINS?.split(',') || ['http://localhost:3000'],
-  credentials: true,
-}));
-app.use(express.json({ limit: '10mb' }));
+app.use(
+  cors({
+    origin: process.env.CORS_ORIGINS?.split(",") || ["http://localhost:3000"],
+    credentials: true,
+  }),
+);
+app.use(express.json({ limit: "10mb" }));
 
 // PII guard — scrubs sensitive data from all outgoing responses
 app.use(piiGuardMiddleware);
 
 // --- Public routes (no auth required) ---
-app.use('/api/v1/auth', authRoutes);
+app.use("/api/v1/auth", authRoutes);
 
 // --- Health check ---
-app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+app.get("/health", (_req, res) => {
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
 // --- Protected routes ---
-app.use('/api/v1/patients', authMiddleware, auditMiddleware, patientRoutes);
-app.use('/api/v1/appointments', authMiddleware, auditMiddleware, appointmentRoutes);
-app.use('/api/v1/billing', authMiddleware, auditMiddleware, billingRoutes);
+app.use("/api/v1/patients", authMiddleware, auditMiddleware, patientRoutes);
+app.use(
+  "/api/v1/appointments",
+  authMiddleware,
+  auditMiddleware,
+  appointmentRoutes,
+);
+app.use("/api/v1/billing", authMiddleware, auditMiddleware, billingRoutes);
 
 // --- Global error handler ---
-app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  // PII scrubbing on error messages before logging
-  const sanitizedMessage = err.message.replace(/\d{3}-\d{2}-\d{4}/g, '***-**-****');
+app.use(
+  (
+    err: Error,
+    _req: express.Request,
+    res: express.Response,
+    _next: express.NextFunction,
+  ) => {
+    // PII scrubbing on error messages before logging
+    const sanitizedMessage = err.message.replace(
+      /\d{3}-\d{2}-\d{4}/g,
+      "***-**-****",
+    );
 
-  logger.error('Unhandled error', {
-    error: sanitizedMessage,
-    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
-  });
+    logger.error("Unhandled error", {
+      error: sanitizedMessage,
+      stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
+    });
 
-  res.status(500).json({
-    error: 'Internal server error',
-    code: 'INTERNAL_ERROR',
-  });
-});
+    res.status(500).json({
+      error: "Internal server error",
+      code: "INTERNAL_ERROR",
+    });
+  },
+);
 
 // --- Start server ---
 const server = app.listen(PORT, () => {
@@ -84,30 +101,36 @@ async function gracefulShutdown(signal: string): Promise<void> {
 
   // Stop accepting new connections
   server.close(() => {
-    logger.info('HTTP server closed');
+    logger.info("HTTP server closed");
   });
 
   try {
     // Disconnect Prisma
     await prisma.$disconnect();
-    logger.info('Prisma disconnected');
+    logger.info("Prisma disconnected");
   } catch (err) {
-    logger.error('Error disconnecting Prisma', { error: (err as Error).message });
+    logger.error("Error disconnecting Prisma", {
+      error: (err as Error).message,
+    });
   }
 
   try {
     // Close Redis connection
     await redis.quit();
-    logger.info('Redis connection closed');
+    logger.info("Redis connection closed");
   } catch (err) {
-    logger.error('Error closing Redis', { error: (err as Error).message });
+    logger.error("Error closing Redis", { error: (err as Error).message });
   }
 
-  logger.info('Graceful shutdown complete');
+  logger.info("Graceful shutdown complete");
   process.exit(0);
 }
 
-process.on('SIGTERM', () => { gracefulShutdown('SIGTERM'); });
-process.on('SIGINT', () => { gracefulShutdown('SIGINT'); });
+process.on("SIGTERM", () => {
+  gracefulShutdown("SIGTERM");
+});
+process.on("SIGINT", () => {
+  gracefulShutdown("SIGINT");
+});
 
 export default app;

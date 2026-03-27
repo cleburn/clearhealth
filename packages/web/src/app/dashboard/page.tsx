@@ -9,20 +9,20 @@
  * @security Dashboard data is tenant-scoped and role-filtered by the API.
  */
 
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/hooks/useAuth';
-import { appointmentApi, billingApi, patientApi } from '@/lib/api-client';
-import { NavHeader } from '@/components/nav-header';
-import { StatsCard } from '@/components/data-display/stats-card';
-import { AppointmentCard } from '@/components/data-display/appointment-card';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import type { Appointment } from '@clearhealth/shared/types/appointment';
-import type { BillingReport } from '@clearhealth/shared/types/billing';
-import type { PatientSummary } from '@clearhealth/shared/types/patient';
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
+import { appointmentApi, billingApi, patientApi } from "@/lib/api-client";
+import { NavHeader } from "@/components/nav-header";
+import { StatsCard } from "@/components/data-display/stats-card";
+import { AppointmentCard } from "@/components/data-display/appointment-card";
+import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import type { Appointment } from "@clearhealth/shared/types/appointment";
+import type { BillingReport } from "@clearhealth/shared/types/billing";
+import type { PatientSummary } from "@clearhealth/shared/types/patient";
 import {
   Calendar,
   Users,
@@ -32,20 +32,23 @@ import {
   ClipboardList,
   FileText,
   TrendingUp,
-} from 'lucide-react';
-import Link from 'next/link';
+} from "lucide-react";
+import Link from "next/link";
 
 export default function DashboardPage() {
-  const { user, isLoading, isAuthenticated, isPatient, isDoctor, isAdmin } = useAuth();
+  const { user, isLoading, isAuthenticated, isPatient, isDoctor, isAdmin } =
+    useAuth();
   const router = useRouter();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [patients, setPatients] = useState<PatientSummary[]>([]);
-  const [billingReport, setBillingReport] = useState<BillingReport | null>(null);
+  const [billingReport, setBillingReport] = useState<BillingReport | null>(
+    null,
+  );
   const [dataLoading, setDataLoading] = useState(true);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      router.replace('/');
+      router.replace("/");
     }
   }, [isLoading, isAuthenticated, router]);
 
@@ -60,14 +63,20 @@ export default function DashboardPage() {
         setAppointments(appts);
 
         // Admin-specific data
-        if (user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN') {
+        if (user?.role === "ADMIN" || user?.role === "SUPER_ADMIN") {
           const patientList = await patientApi.list().catch(() => []);
           setPatients(patientList);
 
           const now = new Date();
-          const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-          const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
-          const report = await billingApi.getReports({ dateStart: monthStart, dateEnd: monthEnd }).catch(() => null);
+          const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+            .toISOString()
+            .split("T")[0];
+          const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+            .toISOString()
+            .split("T")[0];
+          const report = await billingApi
+            .getReports({ dateStart: monthStart, dateEnd: monthEnd })
+            .catch(() => null);
           setBillingReport(report);
         }
       } catch {
@@ -94,8 +103,13 @@ export default function DashboardPage() {
   });
 
   const upcomingAppts = appointments
-    .filter((a) => new Date(a.scheduledAt) >= new Date() && a.status !== 'CANCELLED')
-    .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())
+    .filter(
+      (a) => new Date(a.scheduledAt) >= new Date() && a.status !== "CANCELLED",
+    )
+    .sort(
+      (a, b) =>
+        new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime(),
+    )
     .slice(0, 5);
 
   return (
@@ -105,7 +119,8 @@ export default function DashboardPage() {
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
           <p className="mt-1 text-gray-600">
-            Welcome back{user?.firstName ? `, ${user.firstName}` : ''}. Here is your overview.
+            Welcome back{user?.firstName ? `, ${user.firstName}` : ""}. Here is
+            your overview.
           </p>
         </div>
 
@@ -121,12 +136,20 @@ export default function DashboardPage() {
               <StatsCard
                 icon={Clock}
                 label="Next Appointment"
-                value={upcomingAppts[0] ? new Date(upcomingAppts[0].scheduledAt).toLocaleDateString() : 'None'}
+                value={
+                  upcomingAppts[0]
+                    ? new Date(
+                        upcomingAppts[0].scheduledAt,
+                      ).toLocaleDateString()
+                    : "None"
+                }
               />
               <StatsCard
                 icon={FileText}
                 label="Total Visits"
-                value={appointments.filter((a) => a.status === 'COMPLETED').length}
+                value={
+                  appointments.filter((a) => a.status === "COMPLETED").length
+                }
               />
             </div>
 
@@ -143,7 +166,11 @@ export default function DashboardPage() {
                   ) : (
                     <div className="space-y-3">
                       {upcomingAppts.map((appt) => (
-                        <AppointmentCard key={appt.id} appointment={appt} showActions={false} />
+                        <AppointmentCard
+                          key={appt.id}
+                          appointment={appt}
+                          showActions={false}
+                        />
                       ))}
                     </div>
                   )}
@@ -162,7 +189,10 @@ export default function DashboardPage() {
                     </Button>
                   </Link>
                   <Link href="/records">
-                    <Button className="w-full justify-start mt-2" variant="outline">
+                    <Button
+                      className="w-full justify-start mt-2"
+                      variant="outline"
+                    >
                       <FileText className="mr-2 h-4 w-4" />
                       View Medical Records
                     </Button>
@@ -185,7 +215,9 @@ export default function DashboardPage() {
               <StatsCard
                 icon={ClipboardList}
                 label="Pending Notes"
-                value={appointments.filter((a) => a.status === 'COMPLETED').length}
+                value={
+                  appointments.filter((a) => a.status === "COMPLETED").length
+                }
               />
               <StatsCard
                 icon={Users}
@@ -226,7 +258,10 @@ export default function DashboardPage() {
                     </Button>
                   </Link>
                   <Link href="/records">
-                    <Button className="w-full justify-start mt-2" variant="outline">
+                    <Button
+                      className="w-full justify-start mt-2"
+                      variant="outline"
+                    >
                       <FileText className="mr-2 h-4 w-4" />
                       Patient Records
                     </Button>
@@ -254,7 +289,11 @@ export default function DashboardPage() {
               <StatsCard
                 icon={DollarSign}
                 label="Monthly Revenue"
-                value={billingReport ? `$${billingReport.totalAmount.toLocaleString()}` : '$0'}
+                value={
+                  billingReport
+                    ? `$${billingReport.totalAmount.toLocaleString()}`
+                    : "$0"
+                }
               />
               <StatsCard
                 icon={TrendingUp}
@@ -276,7 +315,11 @@ export default function DashboardPage() {
                   ) : (
                     <div className="space-y-3">
                       {todayAppts.slice(0, 3).map((appt) => (
-                        <AppointmentCard key={appt.id} appointment={appt} showActions={false} />
+                        <AppointmentCard
+                          key={appt.id}
+                          appointment={appt}
+                          showActions={false}
+                        />
                       ))}
                       {todayAppts.length > 3 && (
                         <Link href="/appointments">
@@ -302,13 +345,19 @@ export default function DashboardPage() {
                     </Button>
                   </Link>
                   <Link href="/admin/staff">
-                    <Button className="w-full justify-start mt-2" variant="outline">
+                    <Button
+                      className="w-full justify-start mt-2"
+                      variant="outline"
+                    >
                       <Users className="mr-2 h-4 w-4" />
                       Staff Management
                     </Button>
                   </Link>
                   <Link href="/appointments">
-                    <Button className="w-full justify-start mt-2" variant="outline">
+                    <Button
+                      className="w-full justify-start mt-2"
+                      variant="outline"
+                    >
                       <Calendar className="mr-2 h-4 w-4" />
                       All Appointments
                     </Button>
@@ -323,12 +372,16 @@ export default function DashboardPage() {
                 <CardContent>
                   {billingReport ? (
                     <div className="space-y-2 text-sm">
-                      {Object.entries(billingReport.byStatus).map(([status, data]) => (
-                        <div key={status} className="flex justify-between">
-                          <span className="text-gray-600">{status}</span>
-                          <span className="font-medium">{data.count} (${data.amount.toLocaleString()})</span>
-                        </div>
-                      ))}
+                      {Object.entries(billingReport.byStatus).map(
+                        ([status, data]) => (
+                          <div key={status} className="flex justify-between">
+                            <span className="text-gray-600">{status}</span>
+                            <span className="font-medium">
+                              {data.count} (${data.amount.toLocaleString()})
+                            </span>
+                          </div>
+                        ),
+                      )}
                     </div>
                   ) : (
                     <p className="text-gray-500">No billing data available.</p>

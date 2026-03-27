@@ -55,3 +55,6 @@ yarn-error.log*
 # Misc
 .cache/
 .turbo/
+packages/api/tsconfig.tsbuildinfo
+packages/*/tsconfig.tsbuildinfo
+packages/shared/dist/

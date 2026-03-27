@@ -11,13 +11,13 @@
 /** User roles in the ClearHealth platform */
 export enum UserRole {
   /** Can view own records, book appointments, manage own profile */
-  PATIENT = 'PATIENT',
+  PATIENT = "PATIENT",
   /** Can manage schedules, write visit notes, view assigned patient records */
-  DOCTOR = 'DOCTOR',
+  DOCTOR = "DOCTOR",
   /** Can manage staff, view billing, access all records within their tenant */
-  ADMIN = 'ADMIN',
+  ADMIN = "ADMIN",
   /** Platform-wide access across all tenants — reserved for ClearHealth operations team */
-  SUPER_ADMIN = 'SUPER_ADMIN',
+  SUPER_ADMIN = "SUPER_ADMIN",
 }
 
 /** Role hierarchy — higher index = more privileges */
@@ -30,15 +30,20 @@ export const ROLE_HIERARCHY: UserRole[] = [
 
 /** Human-readable role display names */
 export const ROLE_DISPLAY_NAMES: Record<UserRole, string> = {
-  [UserRole.PATIENT]: 'Patient',
-  [UserRole.DOCTOR]: 'Doctor',
-  [UserRole.ADMIN]: 'Clinic Administrator',
-  [UserRole.SUPER_ADMIN]: 'Super Administrator',
+  [UserRole.PATIENT]: "Patient",
+  [UserRole.DOCTOR]: "Doctor",
+  [UserRole.ADMIN]: "Clinic Administrator",
+  [UserRole.SUPER_ADMIN]: "Super Administrator",
 };
 
 /**
  * Checks whether a given role has equal or higher privileges than the required role.
  */
-export function hasMinimumRole(userRole: UserRole, requiredRole: UserRole): boolean {
-  return ROLE_HIERARCHY.indexOf(userRole) >= ROLE_HIERARCHY.indexOf(requiredRole);
+export function hasMinimumRole(
+  userRole: UserRole,
+  requiredRole: UserRole,
+): boolean {
+  return (
+    ROLE_HIERARCHY.indexOf(userRole) >= ROLE_HIERARCHY.indexOf(requiredRole)
+  );
 }

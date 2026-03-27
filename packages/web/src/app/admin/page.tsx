@@ -9,17 +9,17 @@
  * ADMIN can only access data within their tenant.
  */
 
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/hooks/useAuth';
-import { appointmentApi, billingApi, patientApi } from '@/lib/api-client';
-import { NavHeader } from '@/components/nav-header';
-import { StatsCard } from '@/components/data-display/stats-card';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import type { Appointment } from '@clearhealth/shared/types/appointment';
-import type { BillingReport } from '@clearhealth/shared/types/billing';
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
+import { appointmentApi, billingApi, patientApi } from "@/lib/api-client";
+import { NavHeader } from "@/components/nav-header";
+import { StatsCard } from "@/components/data-display/stats-card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import type { Appointment } from "@clearhealth/shared/types/appointment";
+import type { BillingReport } from "@clearhealth/shared/types/billing";
 import {
   Calendar,
   Users,
@@ -29,24 +29,26 @@ import {
   UserCog,
   BarChart3,
   Loader2,
-} from 'lucide-react';
-import Link from 'next/link';
+} from "lucide-react";
+import Link from "next/link";
 
 export default function AdminPage() {
   const { isLoading, isAuthenticated, isAdmin } = useAuth();
   const router = useRouter();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [billingReport, setBillingReport] = useState<BillingReport | null>(null);
+  const [billingReport, setBillingReport] = useState<BillingReport | null>(
+    null,
+  );
   const [patientCount, setPatientCount] = useState(0);
   const [, setDataLoading] = useState(true);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      router.replace('/');
+      router.replace("/");
       return;
     }
     if (!isLoading && isAuthenticated && !isAdmin()) {
-      router.replace('/dashboard');
+      router.replace("/dashboard");
     }
   }, [isLoading, isAuthenticated, isAdmin, router]);
 
@@ -64,9 +66,15 @@ export default function AdminPage() {
         setPatientCount(patients.length);
 
         const now = new Date();
-        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-        const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
-        const report = await billingApi.getReports({ dateStart: monthStart, dateEnd: monthEnd }).catch(() => null);
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+          .toISOString()
+          .split("T")[0];
+        const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+          .toISOString()
+          .split("T")[0];
+        const report = await billingApi
+          .getReports({ dateStart: monthStart, dateEnd: monthEnd })
+          .catch(() => null);
         setBillingReport(report);
       } catch {
         // Handle gracefully
@@ -91,9 +99,10 @@ export default function AdminPage() {
     return date.toDateString() === today.toDateString();
   });
 
-  const noShowCount = appointments.filter((a) => a.status === 'NO_SHOW').length;
+  const noShowCount = appointments.filter((a) => a.status === "NO_SHOW").length;
   const totalAppts = appointments.length;
-  const noShowRate = totalAppts > 0 ? ((noShowCount / totalAppts) * 100).toFixed(1) : '0.0';
+  const noShowRate =
+    totalAppts > 0 ? ((noShowCount / totalAppts) * 100).toFixed(1) : "0.0";
 
   return (
     <div>
@@ -112,18 +121,18 @@ export default function AdminPage() {
           <StatsCard
             icon={DollarSign}
             label="Monthly Revenue"
-            value={billingReport ? `$${billingReport.totalAmount.toLocaleString()}` : '$0'}
+            value={
+              billingReport
+                ? `$${billingReport.totalAmount.toLocaleString()}`
+                : "$0"
+            }
           />
           <StatsCard
             icon={AlertTriangle}
             label="No-Show Rate"
             value={`${noShowRate}%`}
           />
-          <StatsCard
-            icon={Users}
-            label="Total Patients"
-            value={patientCount}
-          />
+          <StatsCard icon={Users} label="Total Patients" value={patientCount} />
         </div>
 
         {/* Navigation Cards */}
@@ -135,7 +144,9 @@ export default function AdminPage() {
                   <CreditCard className="h-8 w-8 text-emerald-600" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900">Billing Management</h2>
+                  <h2 className="text-lg font-semibold text-gray-900">
+                    Billing Management
+                  </h2>
                   <p className="mt-1 text-sm text-gray-500">
                     Insurance claims, payments, and financial reports.
                   </p>
@@ -156,7 +167,9 @@ export default function AdminPage() {
                   <UserCog className="h-8 w-8 text-brand-600" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900">Staff Management</h2>
+                  <h2 className="text-lg font-semibold text-gray-900">
+                    Staff Management
+                  </h2>
                   <p className="mt-1 text-sm text-gray-500">
                     Manage doctors, staff accounts, and permissions.
                   </p>
@@ -182,10 +195,17 @@ export default function AdminPage() {
                 ) : (
                   <div className="space-y-3">
                     {billingReport.byProvider.map((provider) => (
-                      <div key={provider.doctorId} className="flex items-center justify-between rounded-md border p-3">
+                      <div
+                        key={provider.doctorId}
+                        className="flex items-center justify-between rounded-md border p-3"
+                      >
                         <div>
-                          <p className="font-medium text-gray-900">{provider.doctorName}</p>
-                          <p className="text-sm text-gray-500">{provider.claimCount} claims</p>
+                          <p className="font-medium text-gray-900">
+                            {provider.doctorName}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            {provider.claimCount} claims
+                          </p>
                         </div>
                         <p className="text-lg font-semibold text-gray-900">
                           ${provider.totalAmount.toLocaleString()}

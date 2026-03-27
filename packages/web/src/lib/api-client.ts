@@ -11,10 +11,26 @@
  * - API base URL from environment variable
  */
 
-import type { LoginRequest, LoginResponse, RefreshResponse } from '@clearhealth/shared/types/auth';
-import type { Patient, PatientSummary, CreatePatientInput, UpdatePatientInput } from '@clearhealth/shared/types/patient';
-import type { Appointment, CreateAppointmentInput, UpdateAppointmentInput } from '@clearhealth/shared/types/appointment';
-import type { BillingRecord, BillingReport } from '@clearhealth/shared/types/billing';
+import type {
+  LoginRequest,
+  LoginResponse,
+  RefreshResponse,
+} from "@clearhealth/shared/types/auth";
+import type {
+  Patient,
+  PatientSummary,
+  CreatePatientInput,
+  UpdatePatientInput,
+} from "@clearhealth/shared/types/patient";
+import type {
+  Appointment,
+  CreateAppointmentInput,
+  UpdateAppointmentInput,
+} from "@clearhealth/shared/types/appointment";
+import type {
+  BillingRecord,
+  BillingReport,
+} from "@clearhealth/shared/types/billing";
 
 /** API error response shape */
 export interface ApiError {
@@ -24,7 +40,8 @@ export interface ApiError {
 }
 
 /** Base URL for API requests */
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
 
 /** In-memory access token storage */
 let accessToken: string | null = null;
@@ -59,9 +76,9 @@ async function attemptRefresh(): Promise<string | null> {
   refreshPromise = (async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include', // Send httpOnly refresh cookie
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include", // Send httpOnly refresh cookie
       });
 
       if (!response.ok) {
@@ -93,38 +110,41 @@ async function attemptRefresh(): Promise<string | null> {
  * @returns Parsed JSON response
  * @throws ApiError on non-2xx responses
  */
-async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+async function apiRequest<T>(
+  endpoint: string,
+  options: RequestInit = {},
+): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
 
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    ...(options.headers as Record<string, string> || {}),
+    "Content-Type": "application/json",
+    ...((options.headers as Record<string, string>) || {}),
   };
 
   if (accessToken) {
-    headers['Authorization'] = `Bearer ${accessToken}`;
+    headers["Authorization"] = `Bearer ${accessToken}`;
   }
 
   let response = await fetch(url, {
     ...options,
     headers,
-    credentials: 'include', // Include httpOnly cookies for refresh token
+    credentials: "include", // Include httpOnly cookies for refresh token
   });
 
   // On 401: attempt token refresh and retry the request once
   if (response.status === 401) {
     const newToken = await attemptRefresh();
     if (newToken) {
-      headers['Authorization'] = `Bearer ${newToken}`;
+      headers["Authorization"] = `Bearer ${newToken}`;
       response = await fetch(url, {
         ...options,
         headers,
-        credentials: 'include',
+        credentials: "include",
       });
     } else {
       const errorBody: ApiError = {
-        error: 'Authentication required',
-        code: 'UNAUTHORIZED',
+        error: "Authentication required",
+        code: "UNAUTHORIZED",
       };
       throw errorBody;
     }
@@ -139,7 +159,7 @@ async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promi
 
   if (!response.ok) {
     const errorBody: ApiError = {
-      error: body.error || body.message || 'An unexpected error occurred',
+      error: body.error || body.message || "An unexpected error occurred",
       code: body.code || `HTTP_${response.status}`,
       details: body.details,
     };
@@ -154,9 +174,9 @@ async function apiRequest<T>(endpoint: string, options: RequestInit = {}): Promi
 export const authApi = {
   login: async (credentials: LoginRequest): Promise<LoginResponse> => {
     const response = await fetch(`${API_BASE_URL}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify(credentials),
     });
 
@@ -164,8 +184,8 @@ export const authApi = {
 
     if (!response.ok) {
       const errorBody: ApiError = {
-        error: body.error || 'Invalid email or password',
-        code: body.code || 'AUTH_FAILED',
+        error: body.error || "Invalid email or password",
+        code: body.code || "AUTH_FAILED",
       };
       throw errorBody;
     }
@@ -177,16 +197,16 @@ export const authApi = {
 
   refresh: async (): Promise<RefreshResponse> => {
     const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
     });
 
     if (!response.ok) {
       const body = await response.json().catch(() => ({}));
       const errorBody: ApiError = {
-        error: (body as Record<string, string>).error || 'Session expired',
-        code: (body as Record<string, string>).code || 'REFRESH_FAILED',
+        error: (body as Record<string, string>).error || "Session expired",
+        code: (body as Record<string, string>).code || "REFRESH_FAILED",
       };
       throw errorBody;
     }
@@ -197,7 +217,7 @@ export const authApi = {
   },
 
   logout: async (): Promise<void> => {
-    await apiRequest<void>('/auth/logout', { method: 'POST' });
+    await apiRequest<void>("/auth/logout", { method: "POST" });
     accessToken = null;
   },
 };
@@ -205,12 +225,15 @@ export const authApi = {
 // --- Patient API ---
 
 export const patientApi = {
-  list: (params?: { page?: number; limit?: number }): Promise<PatientSummary[]> => {
+  list: (params?: {
+    page?: number;
+    limit?: number;
+  }): Promise<PatientSummary[]> => {
     const searchParams = new URLSearchParams();
-    if (params?.page) searchParams.set('page', String(params.page));
-    if (params?.limit) searchParams.set('limit', String(params.limit));
+    if (params?.page) searchParams.set("page", String(params.page));
+    if (params?.limit) searchParams.set("limit", String(params.limit));
     const query = searchParams.toString();
-    return apiRequest<PatientSummary[]>(`/patients${query ? `?${query}` : ''}`);
+    return apiRequest<PatientSummary[]>(`/patients${query ? `?${query}` : ""}`);
   },
 
   getById: (id: string): Promise<Patient> => {
@@ -218,21 +241,21 @@ export const patientApi = {
   },
 
   create: (input: CreatePatientInput): Promise<Patient> => {
-    return apiRequest<Patient>('/patients', {
-      method: 'POST',
+    return apiRequest<Patient>("/patients", {
+      method: "POST",
       body: JSON.stringify(input),
     });
   },
 
   update: (id: string, input: UpdatePatientInput): Promise<Patient> => {
     return apiRequest<Patient>(`/patients/${id}`, {
-      method: 'PATCH',
+      method: "PATCH",
       body: JSON.stringify(input),
     });
   },
 
   delete: (id: string): Promise<void> => {
-    return apiRequest<void>(`/patients/${id}`, { method: 'DELETE' });
+    return apiRequest<void>(`/patients/${id}`, { method: "DELETE" });
   },
 
   getHistory: (id: string): Promise<Appointment[]> => {
@@ -243,69 +266,90 @@ export const patientApi = {
 // --- Appointment API ---
 
 export const appointmentApi = {
-  list: (params?: { doctorId?: string; patientId?: string; status?: string; dateStart?: string; dateEnd?: string }): Promise<Appointment[]> => {
+  list: (params?: {
+    doctorId?: string;
+    patientId?: string;
+    status?: string;
+    dateStart?: string;
+    dateEnd?: string;
+  }): Promise<Appointment[]> => {
     const searchParams = new URLSearchParams();
-    if (params?.doctorId) searchParams.set('doctorId', params.doctorId);
-    if (params?.patientId) searchParams.set('patientId', params.patientId);
-    if (params?.status) searchParams.set('status', params.status);
-    if (params?.dateStart) searchParams.set('dateStart', params.dateStart);
-    if (params?.dateEnd) searchParams.set('dateEnd', params.dateEnd);
+    if (params?.doctorId) searchParams.set("doctorId", params.doctorId);
+    if (params?.patientId) searchParams.set("patientId", params.patientId);
+    if (params?.status) searchParams.set("status", params.status);
+    if (params?.dateStart) searchParams.set("dateStart", params.dateStart);
+    if (params?.dateEnd) searchParams.set("dateEnd", params.dateEnd);
     const query = searchParams.toString();
-    return apiRequest<Appointment[]>(`/appointments${query ? `?${query}` : ''}`);
+    return apiRequest<Appointment[]>(
+      `/appointments${query ? `?${query}` : ""}`,
+    );
   },
 
   create: (input: CreateAppointmentInput): Promise<Appointment> => {
-    return apiRequest<Appointment>('/appointments', {
-      method: 'POST',
+    return apiRequest<Appointment>("/appointments", {
+      method: "POST",
       body: JSON.stringify(input),
     });
   },
 
   update: (id: string, input: UpdateAppointmentInput): Promise<Appointment> => {
     return apiRequest<Appointment>(`/appointments/${id}`, {
-      method: 'PATCH',
+      method: "PATCH",
       body: JSON.stringify(input),
     });
   },
 
   checkin: (id: string): Promise<Appointment> => {
-    return apiRequest<Appointment>(`/appointments/${id}/checkin`, { method: 'POST' });
+    return apiRequest<Appointment>(`/appointments/${id}/checkin`, {
+      method: "POST",
+    });
   },
 
   complete: (id: string): Promise<Appointment> => {
-    return apiRequest<Appointment>(`/appointments/${id}/complete`, { method: 'POST' });
+    return apiRequest<Appointment>(`/appointments/${id}/complete`, {
+      method: "POST",
+    });
   },
 };
 
 // --- Billing API ---
 
 export const billingApi = {
-  list: (params?: { status?: string; dateStart?: string; dateEnd?: string }): Promise<BillingRecord[]> => {
+  list: (params?: {
+    status?: string;
+    dateStart?: string;
+    dateEnd?: string;
+  }): Promise<BillingRecord[]> => {
     const searchParams = new URLSearchParams();
-    if (params?.status) searchParams.set('status', params.status);
-    if (params?.dateStart) searchParams.set('dateStart', params.dateStart);
-    if (params?.dateEnd) searchParams.set('dateEnd', params.dateEnd);
+    if (params?.status) searchParams.set("status", params.status);
+    if (params?.dateStart) searchParams.set("dateStart", params.dateStart);
+    if (params?.dateEnd) searchParams.set("dateEnd", params.dateEnd);
     const query = searchParams.toString();
-    return apiRequest<BillingRecord[]>(`/billing${query ? `?${query}` : ''}`);
+    return apiRequest<BillingRecord[]>(`/billing${query ? `?${query}` : ""}`);
   },
 
   submitClaim: (billingRecordId: string): Promise<BillingRecord> => {
-    return apiRequest<BillingRecord>('/billing/claims', {
-      method: 'POST',
+    return apiRequest<BillingRecord>("/billing/claims", {
+      method: "POST",
       body: JSON.stringify({ billingRecordId }),
     });
   },
 
   followUpClaim: (claimId: string): Promise<BillingRecord> => {
     return apiRequest<BillingRecord>(`/billing/claims/${claimId}/followup`, {
-      method: 'POST',
+      method: "POST",
     });
   },
 
-  getReports: (params: { dateStart: string; dateEnd: string }): Promise<BillingReport> => {
+  getReports: (params: {
+    dateStart: string;
+    dateEnd: string;
+  }): Promise<BillingReport> => {
     const searchParams = new URLSearchParams();
-    searchParams.set('dateStart', params.dateStart);
-    searchParams.set('dateEnd', params.dateEnd);
-    return apiRequest<BillingReport>(`/billing/reports?${searchParams.toString()}`);
+    searchParams.set("dateStart", params.dateStart);
+    searchParams.set("dateEnd", params.dateEnd);
+    return apiRequest<BillingReport>(
+      `/billing/reports?${searchParams.toString()}`,
+    );
   },
 };

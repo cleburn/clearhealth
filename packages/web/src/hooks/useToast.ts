@@ -5,27 +5,27 @@
  * Uses React state to manage toast queue — no global store.
  */
 
-'use client';
+"use client";
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback } from "react";
 
 export interface ToastMessage {
   id: string;
   title: string;
   description?: string;
-  variant?: 'default' | 'destructive' | 'success';
+  variant?: "default" | "destructive" | "success";
 }
 
 let toastCounter = 0;
 
 /** Global toast state for cross-component access */
-let globalAddToast: ((toast: Omit<ToastMessage, 'id'>) => void) | null = null;
+let globalAddToast: ((toast: Omit<ToastMessage, "id">) => void) | null = null;
 let _globalDismissToast: ((id: string) => void) | null = null;
 
 export function useToast() {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
-  const addToast = useCallback((toast: Omit<ToastMessage, 'id'>) => {
+  const addToast = useCallback((toast: Omit<ToastMessage, "id">) => {
     const id = `toast-${++toastCounter}`;
     setToasts((prev) => [...prev, { ...toast, id }]);
     setTimeout(() => {
@@ -45,7 +45,7 @@ export function useToast() {
 }
 
 /** Fire a toast from anywhere (requires ToastProvider to be mounted) */
-export function toast(message: Omit<ToastMessage, 'id'>): void {
+export function toast(message: Omit<ToastMessage, "id">): void {
   if (globalAddToast) {
     globalAddToast(message);
   }

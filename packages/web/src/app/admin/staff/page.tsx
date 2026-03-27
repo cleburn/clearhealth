@@ -9,30 +9,48 @@
  * SUPER_ADMIN role assignment requires another SUPER_ADMIN.
  */
 
-'use client';
+"use client";
 
-import { useEffect, useState, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/hooks/useAuth';
-import { appointmentApi } from '@/lib/api-client';
-import { NavHeader } from '@/components/nav-header';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/components/ui/table';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { toast } from '@/hooks/useToast';
-import { UserRole, ROLE_DISPLAY_NAMES } from '@clearhealth/shared/constants/roles';
-import type { Appointment } from '@clearhealth/shared/types/appointment';
+import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
+import { appointmentApi } from "@/lib/api-client";
+import { NavHeader } from "@/components/nav-header";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import {
-  Plus,
-  UserCog,
-  Calendar,
-  Loader2,
-} from 'lucide-react';
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { toast } from "@/hooks/useToast";
+import {
+  UserRole,
+  ROLE_DISPLAY_NAMES,
+} from "@clearhealth/shared/constants/roles";
+import type { Appointment } from "@clearhealth/shared/types/appointment";
+import { Plus, UserCog, Calendar, Loader2 } from "lucide-react";
 
 /** Staff member representation derived from appointment data */
 interface StaffMember {
@@ -44,11 +62,14 @@ interface StaffMember {
   appointmentCount: number;
 }
 
-const ROLE_BADGE_VARIANT: Record<UserRole, 'blue' | 'green' | 'yellow' | 'red'> = {
-  [UserRole.PATIENT]: 'blue',
-  [UserRole.DOCTOR]: 'green',
-  [UserRole.ADMIN]: 'yellow',
-  [UserRole.SUPER_ADMIN]: 'red',
+const ROLE_BADGE_VARIANT: Record<
+  UserRole,
+  "blue" | "green" | "yellow" | "red"
+> = {
+  [UserRole.PATIENT]: "blue",
+  [UserRole.DOCTOR]: "green",
+  [UserRole.ADMIN]: "yellow",
+  [UserRole.SUPER_ADMIN]: "red",
 };
 
 export default function StaffPage() {
@@ -63,17 +84,17 @@ export default function StaffPage() {
   const [scheduleLoading, setScheduleLoading] = useState(false);
 
   // Add staff form state
-  const [newStaffName, setNewStaffName] = useState('');
-  const [newStaffEmail, setNewStaffEmail] = useState('');
+  const [newStaffName, setNewStaffName] = useState("");
+  const [newStaffEmail, setNewStaffEmail] = useState("");
   const [newStaffRole, setNewStaffRole] = useState<UserRole>(UserRole.DOCTOR);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      router.replace('/');
+      router.replace("/");
       return;
     }
     if (!isLoading && isAuthenticated && !isAdmin()) {
-      router.replace('/dashboard');
+      router.replace("/dashboard");
     }
   }, [isLoading, isAuthenticated, isAdmin, router]);
 
@@ -93,18 +114,20 @@ export default function StaffPage() {
         }
       });
 
-      const staffList: StaffMember[] = Array.from(doctorMap.entries()).map(([doctorId, data]) => ({
-        id: doctorId,
-        name: `Dr. ${doctorId.slice(0, 8)}`,
-        role: UserRole.DOCTOR,
-        email: `doctor.${doctorId.slice(0, 8)}@clinic.com`,
-        isActive: true,
-        appointmentCount: data.count,
-      }));
+      const staffList: StaffMember[] = Array.from(doctorMap.entries()).map(
+        ([doctorId, data]) => ({
+          id: doctorId,
+          name: `Dr. ${doctorId.slice(0, 8)}`,
+          role: UserRole.DOCTOR,
+          email: `doctor.${doctorId.slice(0, 8)}@clinic.com`,
+          isActive: true,
+          appointmentCount: data.count,
+        }),
+      );
 
       setStaff(staffList);
     } catch {
-      toast({ title: 'Failed to load staff', variant: 'destructive' });
+      toast({ title: "Failed to load staff", variant: "destructive" });
     } finally {
       setDataLoading(false);
     }
@@ -118,7 +141,10 @@ export default function StaffPage() {
 
   const handleAddStaff = async () => {
     if (!newStaffName || !newStaffEmail) {
-      toast({ title: 'Please fill in all required fields', variant: 'destructive' });
+      toast({
+        title: "Please fill in all required fields",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -134,10 +160,10 @@ export default function StaffPage() {
 
     setStaff((prev) => [...prev, newMember]);
     setShowAddDialog(false);
-    setNewStaffName('');
-    setNewStaffEmail('');
+    setNewStaffName("");
+    setNewStaffEmail("");
     setNewStaffRole(UserRole.DOCTOR);
-    toast({ title: 'Staff member added', variant: 'success' });
+    toast({ title: "Staff member added", variant: "success" });
   };
 
   const handleViewSchedule = async (member: StaffMember) => {
@@ -148,7 +174,7 @@ export default function StaffPage() {
       const appts = await appointmentApi.list({ doctorId: member.id });
       setStaffSchedule(appts);
     } catch {
-      toast({ title: 'Failed to load schedule', variant: 'destructive' });
+      toast({ title: "Failed to load schedule", variant: "destructive" });
       setStaffSchedule([]);
     } finally {
       setScheduleLoading(false);
@@ -158,10 +184,10 @@ export default function StaffPage() {
   const handleToggleActive = (memberId: string) => {
     setStaff((prev) =>
       prev.map((m) =>
-        m.id === memberId ? { ...m, isActive: !m.isActive } : m
-      )
+        m.id === memberId ? { ...m, isActive: !m.isActive } : m,
+      ),
     );
-    toast({ title: 'Staff status updated', variant: 'success' });
+    toast({ title: "Staff status updated", variant: "success" });
   };
 
   if (isLoading || !isAuthenticated) {
@@ -178,8 +204,12 @@ export default function StaffPage() {
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Staff Management</h1>
-            <p className="mt-1 text-gray-600">Manage clinic staff accounts and roles.</p>
+            <h1 className="text-2xl font-bold text-gray-900">
+              Staff Management
+            </h1>
+            <p className="mt-1 text-gray-600">
+              Manage clinic staff accounts and roles.
+            </p>
           </div>
           <Button onClick={() => setShowAddDialog(true)}>
             <Plus className="mr-2 h-4 w-4" />
@@ -200,7 +230,9 @@ export default function StaffPage() {
                 <Loader2 className="h-6 w-6 animate-spin text-brand-600" />
               </div>
             ) : staff.length === 0 ? (
-              <p className="text-center py-8 text-gray-500">No staff members found.</p>
+              <p className="text-center py-8 text-gray-500">
+                No staff members found.
+              </p>
             ) : (
               <Table>
                 <TableHeader>
@@ -216,33 +248,43 @@ export default function StaffPage() {
                 <TableBody>
                   {staff.map((member) => (
                     <TableRow key={member.id}>
-                      <TableCell className="font-medium">{member.name}</TableCell>
-                      <TableCell className="text-sm text-gray-500">{member.email}</TableCell>
+                      <TableCell className="font-medium">
+                        {member.name}
+                      </TableCell>
+                      <TableCell className="text-sm text-gray-500">
+                        {member.email}
+                      </TableCell>
                       <TableCell>
                         <Badge variant={ROLE_BADGE_VARIANT[member.role]}>
                           {ROLE_DISPLAY_NAMES[member.role]}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={member.isActive ? 'green' : 'red'}>
-                          {member.isActive ? 'Active' : 'Inactive'}
+                        <Badge variant={member.isActive ? "green" : "red"}>
+                          {member.isActive ? "Active" : "Inactive"}
                         </Badge>
                       </TableCell>
                       <TableCell>{member.appointmentCount}</TableCell>
                       <TableCell>
                         <div className="flex gap-1">
                           {member.role === UserRole.DOCTOR && (
-                            <Button size="sm" variant="outline" onClick={() => handleViewSchedule(member)}>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleViewSchedule(member)}
+                            >
                               <Calendar className="h-3 w-3 mr-1" />
                               Schedule
                             </Button>
                           )}
                           <Button
                             size="sm"
-                            variant={member.isActive ? 'destructive' : 'default'}
+                            variant={
+                              member.isActive ? "destructive" : "default"
+                            }
                             onClick={() => handleToggleActive(member.id)}
                           >
-                            {member.isActive ? 'Deactivate' : 'Activate'}
+                            {member.isActive ? "Deactivate" : "Activate"}
                           </Button>
                         </div>
                       </TableCell>
@@ -287,13 +329,20 @@ export default function StaffPage() {
               </div>
               <div>
                 <Label htmlFor="staffRole">Role</Label>
-                <Select value={newStaffRole} onValueChange={(val) => setNewStaffRole(val as UserRole)}>
+                <Select
+                  value={newStaffRole}
+                  onValueChange={(val) => setNewStaffRole(val as UserRole)}
+                >
                   <SelectTrigger className="mt-1">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={UserRole.DOCTOR}>{ROLE_DISPLAY_NAMES[UserRole.DOCTOR]}</SelectItem>
-                    <SelectItem value={UserRole.ADMIN}>{ROLE_DISPLAY_NAMES[UserRole.ADMIN]}</SelectItem>
+                    <SelectItem value={UserRole.DOCTOR}>
+                      {ROLE_DISPLAY_NAMES[UserRole.DOCTOR]}
+                    </SelectItem>
+                    <SelectItem value={UserRole.ADMIN}>
+                      {ROLE_DISPLAY_NAMES[UserRole.ADMIN]}
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -322,23 +371,43 @@ export default function StaffPage() {
                   <Loader2 className="h-6 w-6 animate-spin text-brand-600" />
                 </div>
               ) : staffSchedule.length === 0 ? (
-                <p className="text-center py-8 text-gray-500">No upcoming appointments.</p>
+                <p className="text-center py-8 text-gray-500">
+                  No upcoming appointments.
+                </p>
               ) : (
                 <div className="space-y-3">
                   {staffSchedule
-                    .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())
+                    .sort(
+                      (a, b) =>
+                        new Date(a.scheduledAt).getTime() -
+                        new Date(b.scheduledAt).getTime(),
+                    )
                     .map((appt) => (
-                      <div key={appt.id} className="flex items-center justify-between rounded-md border p-3">
+                      <div
+                        key={appt.id}
+                        className="flex items-center justify-between rounded-md border p-3"
+                      >
                         <div>
                           <p className="text-sm font-medium">
-                            {new Date(appt.scheduledAt).toLocaleDateString()} at{' '}
-                            {new Date(appt.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            {new Date(appt.scheduledAt).toLocaleDateString()} at{" "}
+                            {new Date(appt.scheduledAt).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
                           </p>
                           <p className="text-xs text-gray-500">
-                            {appt.type.replace('_', ' ')} | {appt.duration} min
+                            {appt.type.replace("_", " ")} | {appt.duration} min
                           </p>
                         </div>
-                        <Badge variant={appt.status === 'COMPLETED' ? 'green' : appt.status === 'CANCELLED' ? 'red' : 'blue'}>
+                        <Badge
+                          variant={
+                            appt.status === "COMPLETED"
+                              ? "green"
+                              : appt.status === "CANCELLED"
+                                ? "red"
+                                : "blue"
+                          }
+                        >
                           {appt.status}
                         </Badge>
                       </div>

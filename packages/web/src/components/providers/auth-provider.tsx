@@ -10,12 +10,19 @@
  * - Auto-refresh timer set 1 minute before JWT expiry
  */
 
-'use client';
+"use client";
 
-import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
-import type { User, LoginRequest } from '@clearhealth/shared/types/auth';
-import { UserRole } from '@clearhealth/shared/constants/roles';
-import { authApi, setAccessToken } from '@/lib/api-client';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useEffect,
+  useRef,
+} from "react";
+import type { User, LoginRequest } from "@clearhealth/shared/types/auth";
+import { UserRole } from "@clearhealth/shared/constants/roles";
+import { authApi, setAccessToken } from "@/lib/api-client";
 
 interface AuthContextValue {
   user: User | null;
@@ -38,10 +45,10 @@ const AuthContext = createContext<AuthContextValue | null>(null);
  */
 function parseJwtExpiry(token: string): number | null {
   try {
-    const parts = token.split('.');
+    const parts = token.split(".");
     if (parts.length !== 3) return null;
     const payload = JSON.parse(atob(parts[1]));
-    return typeof payload.exp === 'number' ? payload.exp : null;
+    return typeof payload.exp === "number" ? payload.exp : null;
   } catch {
     return null;
   }
@@ -98,17 +105,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         scheduleRefresh(response.accessToken);
         // We need user info — decode from token or make a separate call.
         // The refresh response doesn't include user, so we parse from JWT payload.
-        const parts = response.accessToken.split('.');
+        const parts = response.accessToken.split(".");
         if (parts.length === 3) {
           const payload = JSON.parse(atob(parts[1]));
           // Set minimal user from JWT — full user data comes from API calls
           setUser({
             id: payload.userId,
             tenantId: payload.tenantId,
-            email: '',
+            email: "",
             role: payload.role as UserRole,
-            firstName: '',
-            lastName: '',
+            firstName: "",
+            lastName: "",
             phone: null,
             createdAt: new Date(),
             updatedAt: new Date(),
@@ -133,12 +140,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [scheduleRefresh]);
 
-  const login = useCallback(async (credentials: LoginRequest): Promise<void> => {
-    const response = await authApi.login(credentials);
-    setAccessToken(response.accessToken);
-    setUser(response.user);
-    scheduleRefresh(response.accessToken);
-  }, [scheduleRefresh]);
+  const login = useCallback(
+    async (credentials: LoginRequest): Promise<void> => {
+      const response = await authApi.login(credentials);
+      setAccessToken(response.accessToken);
+      setUser(response.user);
+      scheduleRefresh(response.accessToken);
+    },
+    [scheduleRefresh],
+  );
 
   const logout = useCallback(async (): Promise<void> => {
     try {
@@ -152,13 +162,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       clearTimeout(refreshTimerRef.current);
       refreshTimerRef.current = null;
     }
-    window.location.href = '/';
+    window.location.href = "/";
   }, []);
 
   const isDoctor = useCallback(() => user?.role === UserRole.DOCTOR, [user]);
-  const isAdmin = useCallback(() => user?.role === UserRole.ADMIN || user?.role === UserRole.SUPER_ADMIN, [user]);
+  const isAdmin = useCallback(
+    () => user?.role === UserRole.ADMIN || user?.role === UserRole.SUPER_ADMIN,
+    [user],
+  );
   const isPatient = useCallback(() => user?.role === UserRole.PATIENT, [user]);
-  const isSuperAdmin = useCallback(() => user?.role === UserRole.SUPER_ADMIN, [user]);
+  const isSuperAdmin = useCallback(
+    () => user?.role === UserRole.SUPER_ADMIN,
+    [user],
+  );
 
   return (
     <AuthContext.Provider
@@ -183,7 +199,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 export function useAuth(): AuthContextValue {
   const ctx = useContext(AuthContext);
   if (!ctx) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return ctx;
 }

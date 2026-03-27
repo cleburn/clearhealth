@@ -5,17 +5,23 @@
  * date/time picker, and appointment type.
  */
 
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { appointmentSchema, type AppointmentFormData } from '@/lib/validators';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2 } from 'lucide-react';
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { appointmentSchema, type AppointmentFormData } from "@/lib/validators";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Loader2 } from "lucide-react";
 
 interface AppointmentFormProps {
   onSubmit: (data: AppointmentFormData) => Promise<void>;
@@ -34,7 +40,7 @@ export function AppointmentForm({ onSubmit, onCancel }: AppointmentFormProps) {
     resolver: zodResolver(appointmentSchema),
     defaultValues: {
       duration: 30,
-      type: 'FOLLOW_UP',
+      type: "FOLLOW_UP",
     },
   });
 
@@ -44,7 +50,9 @@ export function AppointmentForm({ onSubmit, onCancel }: AppointmentFormProps) {
       await onSubmit(data);
     } catch (err: unknown) {
       const apiErr = err as { error?: string };
-      setError(apiErr?.error || 'Failed to book appointment. Please try again.');
+      setError(
+        apiErr?.error || "Failed to book appointment. Please try again.",
+      );
     }
   };
 
@@ -61,7 +69,7 @@ export function AppointmentForm({ onSubmit, onCancel }: AppointmentFormProps) {
         <Input
           id="doctorId"
           placeholder="Select a doctor"
-          {...register('doctorId')}
+          {...register("doctorId")}
           className="mt-1"
         />
         {errors.doctorId && (
@@ -74,18 +82,20 @@ export function AppointmentForm({ onSubmit, onCancel }: AppointmentFormProps) {
         <Input
           id="scheduledAt"
           type="datetime-local"
-          {...register('scheduledAt')}
+          {...register("scheduledAt")}
           className="mt-1"
         />
         {errors.scheduledAt && (
-          <p className="mt-1 text-xs text-red-600">{errors.scheduledAt.message}</p>
+          <p className="mt-1 text-xs text-red-600">
+            {errors.scheduledAt.message}
+          </p>
         )}
       </div>
 
       <div>
         <Label htmlFor="duration">Duration (minutes)</Label>
         <Select
-          onValueChange={(val) => setValue('duration', parseInt(val, 10))}
+          onValueChange={(val) => setValue("duration", parseInt(val, 10))}
           defaultValue="30"
         >
           <SelectTrigger className="mt-1">
@@ -108,7 +118,9 @@ export function AppointmentForm({ onSubmit, onCancel }: AppointmentFormProps) {
       <div>
         <Label htmlFor="type">Appointment Type</Label>
         <Select
-          onValueChange={(val) => setValue('type', val as AppointmentFormData['type'])}
+          onValueChange={(val) =>
+            setValue("type", val as AppointmentFormData["type"])
+          }
           defaultValue="FOLLOW_UP"
         >
           <SelectTrigger className="mt-1">
@@ -130,7 +142,7 @@ export function AppointmentForm({ onSubmit, onCancel }: AppointmentFormProps) {
         <Label htmlFor="notes">Notes (optional)</Label>
         <textarea
           id="notes"
-          {...register('notes')}
+          {...register("notes")}
           className="mt-1 flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 min-h-[80px]"
           placeholder="Any additional notes for the appointment..."
         />
@@ -147,7 +159,7 @@ export function AppointmentForm({ onSubmit, onCancel }: AppointmentFormProps) {
               Booking...
             </>
           ) : (
-            'Book Appointment'
+            "Book Appointment"
           )}
         </Button>
       </div>

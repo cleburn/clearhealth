@@ -12,11 +12,11 @@
  * - Role-based guards restrict access to specific endpoints
  */
 
-import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
-import type { JWTPayload } from '@clearhealth/shared/types/auth';
-import type { UserRole } from '@clearhealth/shared/constants/roles';
-import { logger } from '../utils/logger';
+import { Request, Response, NextFunction } from "express";
+import jwt from "jsonwebtoken";
+import type { JWTPayload } from "@clearhealth/shared/types/auth";
+import type { UserRole } from "@clearhealth/shared/constants/roles";
+import { logger } from "../utils/logger";
 
 /** Extended Express Request with authenticated user context */
 export interface AuthenticatedRequest extends Request {
@@ -29,11 +29,17 @@ export interface AuthenticatedRequest extends Request {
  * Extracts token from Authorization header, verifies it, and attaches
  * the decoded payload to the request object.
  */
-export function authMiddleware(req: AuthenticatedRequest, res: Response, next: NextFunction): void {
+export function authMiddleware(
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction,
+): void {
   const authHeader = req.headers.authorization;
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    res.status(401).json({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    res
+      .status(401)
+      .json({ error: "Authentication required", code: "AUTH_REQUIRED" });
     return;
   }
 
@@ -41,8 +47,10 @@ export function authMiddleware(req: AuthenticatedRequest, res: Response, next: N
 
   const jwtSecret = process.env.JWT_SECRET;
   if (!jwtSecret) {
-    logger.error('JWT_SECRET not configured');
-    res.status(500).json({ error: 'Internal server error', code: 'INTERNAL_ERROR' });
+    logger.error("JWT_SECRET not configured");
+    res
+      .status(500)
+      .json({ error: "Internal server error", code: "INTERNAL_ERROR" });
     return;
   }
 
@@ -54,17 +62,16 @@ export function authMiddleware(req: AuthenticatedRequest, res: Response, next: N
 
     next();
   } catch (err) {
-    const errorMessage = err instanceof jwt.TokenExpiredError
-      ? 'Token expired'
-      : 'Invalid token';
+    const errorMessage =
+      err instanceof jwt.TokenExpiredError ? "Token expired" : "Invalid token";
 
-    logger.warn('Authentication failed', {
+    logger.warn("Authentication failed", {
       reason: errorMessage,
       ip: req.ip,
       path: req.path,
     });
 
-    res.status(401).json({ error: errorMessage, code: 'AUTH_FAILED' });
+    res.status(401).json({ error: errorMessage, code: "AUTH_FAILED" });
   }
 }
 
@@ -79,15 +86,19 @@ export function authMiddleware(req: AuthenticatedRequest, res: Response, next: N
  * @example
  * router.get('/admin-only', requireRole('ADMIN', 'SUPER_ADMIN'), handler);
  */
-export function requireRole(...roles: (UserRole | string)[]): (req: AuthenticatedRequest, res: Response, next: NextFunction) => void {
+export function requireRole(
+  ...roles: (UserRole | string)[]
+): (req: AuthenticatedRequest, res: Response, next: NextFunction) => void {
   return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     if (!req.user) {
-      res.status(401).json({ error: 'Authentication required', code: 'AUTH_REQUIRED' });
+      res
+        .status(401)
+        .json({ error: "Authentication required", code: "AUTH_REQUIRED" });
       return;
     }
 
     if (!roles.includes(req.user.role)) {
-      logger.warn('Unauthorized access attempt', {
+      logger.warn("Unauthorized access attempt", {
         userId: req.user.userId,
         requiredRoles: roles,
         userRole: req.user.role,
@@ -95,7 +106,9 @@ export function requireRole(...roles: (UserRole | string)[]): (req: Authenticate
         method: req.method,
       });
 
-      res.status(403).json({ error: 'Insufficient permissions', code: 'FORBIDDEN' });
+      res
+        .status(403)
+        .json({ error: "Insufficient permissions", code: "FORBIDDEN" });
       return;
     }
 

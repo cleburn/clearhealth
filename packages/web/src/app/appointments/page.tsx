@@ -9,43 +9,57 @@
  * @security Appointment data is tenant-scoped and role-filtered.
  */
 
-'use client';
+"use client";
 
-import { useEffect, useState, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/hooks/useAuth';
-import { appointmentApi } from '@/lib/api-client';
-import { NavHeader } from '@/components/nav-header';
-import { AppointmentCard } from '@/components/data-display/appointment-card';
-import { AppointmentForm } from '@/components/forms/appointment-form';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { toast } from '@/hooks/useToast';
-import type { Appointment } from '@clearhealth/shared/types/appointment';
-import { AppointmentStatus } from '@clearhealth/shared/types/appointment';
-import type { AppointmentFormData } from '@/lib/validators';
-import { Plus, Loader2 } from 'lucide-react';
+import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
+import { appointmentApi } from "@/lib/api-client";
+import { NavHeader } from "@/components/nav-header";
+import { AppointmentCard } from "@/components/data-display/appointment-card";
+import { AppointmentForm } from "@/components/forms/appointment-form";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { toast } from "@/hooks/useToast";
+import type { Appointment } from "@clearhealth/shared/types/appointment";
+import { AppointmentStatus } from "@clearhealth/shared/types/appointment";
+import type { AppointmentFormData } from "@/lib/validators";
+import { Plus, Loader2 } from "lucide-react";
 
 export default function AppointmentsPage() {
   const { user, isLoading, isAuthenticated } = useAuth();
   const router = useRouter();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [filteredAppointments, setFilteredAppointments] = useState<Appointment[]>([]);
+  const [filteredAppointments, setFilteredAppointments] = useState<
+    Appointment[]
+  >([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [showBookDialog, setShowBookDialog] = useState(false);
 
   // Filter state
-  const [statusFilter, setStatusFilter] = useState<string>('ALL');
-  const [typeFilter, setTypeFilter] = useState<string>('ALL');
-  const [dateStart, setDateStart] = useState('');
-  const [dateEnd, setDateEnd] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  const [typeFilter, setTypeFilter] = useState<string>("ALL");
+  const [dateStart, setDateStart] = useState("");
+  const [dateEnd, setDateEnd] = useState("");
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      router.replace('/');
+      router.replace("/");
     }
   }, [isLoading, isAuthenticated, router]);
 
@@ -55,11 +69,11 @@ export default function AppointmentsPage() {
       const params: Record<string, string> = {};
       if (dateStart) params.dateStart = dateStart;
       if (dateEnd) params.dateEnd = dateEnd;
-      if (statusFilter !== 'ALL') params.status = statusFilter;
+      if (statusFilter !== "ALL") params.status = statusFilter;
       const data = await appointmentApi.list(params);
       setAppointments(data);
     } catch {
-      toast({ title: 'Failed to load appointments', variant: 'destructive' });
+      toast({ title: "Failed to load appointments", variant: "destructive" });
     } finally {
       setDataLoading(false);
     }
@@ -74,23 +88,26 @@ export default function AppointmentsPage() {
   // Apply client-side type filter
   useEffect(() => {
     let filtered = [...appointments];
-    if (typeFilter !== 'ALL') {
+    if (typeFilter !== "ALL") {
       filtered = filtered.filter((a) => a.type === typeFilter);
     }
-    filtered.sort((a, b) => new Date(b.scheduledAt).getTime() - new Date(a.scheduledAt).getTime());
+    filtered.sort(
+      (a, b) =>
+        new Date(b.scheduledAt).getTime() - new Date(a.scheduledAt).getTime(),
+    );
     setFilteredAppointments(filtered);
   }, [appointments, typeFilter]);
 
   const handleBook = async (data: AppointmentFormData) => {
     await appointmentApi.create({
-      patientId: user?.id || '',
+      patientId: user?.id || "",
       doctorId: data.doctorId,
       scheduledAt: new Date(data.scheduledAt).toISOString(),
       duration: data.duration,
-      type: data.type as Appointment['type'],
+      type: data.type as Appointment["type"],
       notes: data.notes,
     });
-    toast({ title: 'Appointment booked successfully', variant: 'success' });
+    toast({ title: "Appointment booked successfully", variant: "success" });
     setShowBookDialog(false);
     fetchAppointments();
   };
@@ -98,30 +115,33 @@ export default function AppointmentsPage() {
   const handleCancel = async (id: string) => {
     try {
       await appointmentApi.update(id, { status: AppointmentStatus.CANCELLED });
-      toast({ title: 'Appointment cancelled', variant: 'default' });
+      toast({ title: "Appointment cancelled", variant: "default" });
       fetchAppointments();
     } catch {
-      toast({ title: 'Failed to cancel appointment', variant: 'destructive' });
+      toast({ title: "Failed to cancel appointment", variant: "destructive" });
     }
   };
 
   const handleCheckin = async (id: string) => {
     try {
       await appointmentApi.checkin(id);
-      toast({ title: 'Checked in successfully', variant: 'success' });
+      toast({ title: "Checked in successfully", variant: "success" });
       fetchAppointments();
     } catch {
-      toast({ title: 'Failed to check in', variant: 'destructive' });
+      toast({ title: "Failed to check in", variant: "destructive" });
     }
   };
 
   const handleComplete = async (id: string) => {
     try {
       await appointmentApi.complete(id);
-      toast({ title: 'Appointment completed', variant: 'success' });
+      toast({ title: "Appointment completed", variant: "success" });
       fetchAppointments();
     } catch {
-      toast({ title: 'Failed to complete appointment', variant: 'destructive' });
+      toast({
+        title: "Failed to complete appointment",
+        variant: "destructive",
+      });
     }
   };
 
@@ -158,7 +178,7 @@ export default function AppointmentsPage() {
                   <SelectItem value="ALL">All Statuses</SelectItem>
                   {Object.values(AppointmentStatus).map((status) => (
                     <SelectItem key={status} value={status}>
-                      {status.replace('_', ' ')}
+                      {status.replace("_", " ")}
                     </SelectItem>
                   ))}
                 </SelectContent>

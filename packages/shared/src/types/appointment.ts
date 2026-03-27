@@ -10,20 +10,20 @@
 
 /** Appointment lifecycle status */
 export enum AppointmentStatus {
-  SCHEDULED = 'SCHEDULED',
-  CONFIRMED = 'CONFIRMED',
-  IN_PROGRESS = 'IN_PROGRESS',
-  COMPLETED = 'COMPLETED',
-  CANCELLED = 'CANCELLED',
-  NO_SHOW = 'NO_SHOW',
+  SCHEDULED = "SCHEDULED",
+  CONFIRMED = "CONFIRMED",
+  IN_PROGRESS = "IN_PROGRESS",
+  COMPLETED = "COMPLETED",
+  CANCELLED = "CANCELLED",
+  NO_SHOW = "NO_SHOW",
 }
 
 /** Type of appointment */
 export enum AppointmentType {
-  INITIAL = 'INITIAL',
-  FOLLOW_UP = 'FOLLOW_UP',
-  URGENT = 'URGENT',
-  TELEHEALTH = 'TELEHEALTH',
+  INITIAL = "INITIAL",
+  FOLLOW_UP = "FOLLOW_UP",
+  URGENT = "URGENT",
+  TELEHEALTH = "TELEHEALTH",
 }
 
 /** Full Appointment record */

@@ -8,20 +8,20 @@
  * The AuthProvider handles token refresh and redirect logic.
  */
 
-import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
-import { AuthProvider } from '@/components/providers/auth-provider';
-import { ToastProvider } from '@/components/providers/toast-provider';
-import './globals.css';
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import { AuthProvider } from "@/components/providers/auth-provider";
+import { ToastProvider } from "@/components/providers/toast-provider";
+import "./globals.css";
 
 const inter = Inter({
-  subsets: ['latin'],
-  variable: '--font-inter',
+  subsets: ["latin"],
+  variable: "--font-inter",
 });
 
 export const metadata: Metadata = {
-  title: 'ClearHealth — Appointment Management',
-  description: 'Multi-tenant healthcare appointment management platform',
+  title: "ClearHealth — Appointment Management",
+  description: "Multi-tenant healthcare appointment management platform",
 };
 
 export default function RootLayout({

@@ -11,24 +11,25 @@
  * through the application (only via direct database access by SUPER_ADMIN).
  */
 
-import { Response, NextFunction } from 'express';
-import type { AuthenticatedRequest } from './auth';
-import { prisma } from '../lib/prisma';
-import { logger } from '../utils/logger';
+import { Response, NextFunction } from "express";
+import type { AuthenticatedRequest } from "./auth";
+import { prisma } from "../lib/prisma";
+import { logger } from "../utils/logger";
 
 /**
  * Maps HTTP methods to audit action names.
  */
 const METHOD_TO_ACTION: Record<string, string> = {
-  GET: 'READ',
-  POST: 'CREATE',
-  PUT: 'UPDATE',
-  PATCH: 'UPDATE',
-  DELETE: 'DELETE',
+  GET: "READ",
+  POST: "CREATE",
+  PUT: "UPDATE",
+  PATCH: "UPDATE",
+  DELETE: "DELETE",
 };
 
 /** UUID v4 pattern for extracting resource IDs from paths */
-const UUID_PATTERN = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+const UUID_PATTERN =
+  /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
 
 /**
  * Extracts the resource name from the request path.
@@ -36,15 +37,15 @@ const UUID_PATTERN = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{1
  */
 function extractResource(path: string): string {
   // Strip /api/v1/ prefix
-  const stripped = path.replace(/^\/api\/v1\//, '');
-  const segments = stripped.split('/').filter(Boolean);
+  const stripped = path.replace(/^\/api\/v1\//, "");
+  const segments = stripped.split("/").filter(Boolean);
 
   if (segments.length === 0) {
-    return 'unknown';
+    return "unknown";
   }
 
   // Get the resource name (first segment), singularize
-  const resource = segments[0].replace(/s$/, '');
+  const resource = segments[0].replace(/s$/, "");
 
   // Handle nested resources (e.g., /patients/:id/history -> "patient_history")
   const subResources: string[] = [];
@@ -56,7 +57,7 @@ function extractResource(path: string): string {
   }
 
   if (subResources.length > 0) {
-    return `${resource}_${subResources.join('_')}`;
+    return `${resource}_${subResources.join("_")}`;
   }
 
   return resource;
@@ -77,7 +78,11 @@ function extractResourceId(path: string): string | null {
  * HIPAA requires access logging for all patient data. This middleware
  * MUST be applied to all patient-related routes.
  */
-export function auditMiddleware(req: AuthenticatedRequest, _res: Response, next: NextFunction): void {
+export function auditMiddleware(
+  req: AuthenticatedRequest,
+  _res: Response,
+  next: NextFunction,
+): void {
   if (!req.user || !req.tenantId) {
     next();
     return;
@@ -86,7 +91,10 @@ export function auditMiddleware(req: AuthenticatedRequest, _res: Response, next:
   const action = METHOD_TO_ACTION[req.method] || req.method;
   const resource = extractResource(req.path);
   const resourceId = extractResourceId(req.path);
-  const ipAddress = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.ip || 'unknown';
+  const ipAddress =
+    (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() ||
+    req.ip ||
+    "unknown";
 
   // Write audit log asynchronously — do not block the response
   prisma.auditLog
@@ -106,7 +114,7 @@ export function auditMiddleware(req: AuthenticatedRequest, _res: Response, next:
       },
     })
     .catch((err: Error) => {
-      logger.error('Failed to write audit log', {
+      logger.error("Failed to write audit log", {
         error: err.message,
         userId: req.user?.userId,
         resource,

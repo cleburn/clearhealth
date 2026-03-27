@@ -12,16 +12,16 @@
  *   under the terms of the BAA (Business Associate Agreement)
  */
 
-import { redis } from '../lib/redis';
-import { prisma } from '../lib/prisma';
-import { logger } from '../utils/logger';
+import { redis } from "../lib/redis";
+import { prisma } from "../lib/prisma";
+import { logger } from "../utils/logger";
 
 const CACHE_TTL_SECONDS = 24 * 60 * 60; // 24 hours
 
 /** Result of an insurance verification check */
 export interface VerificationResult {
   isVerified: boolean;
-  status: 'ACTIVE' | 'INACTIVE' | 'PENDING' | 'EXPIRED';
+  status: "ACTIVE" | "INACTIVE" | "PENDING" | "EXPIRED";
   planName: string;
   groupNumber: string;
   effectiveDate: string;
@@ -51,25 +51,25 @@ async function callInsuranceAPI(
   plan: string,
 ): Promise<VerificationResult> {
   // Stub: simulate external API response
-  logger.info('Calling external insurance verification API', {
-    insuranceId: '[FILTERED]',
+  logger.info("Calling external insurance verification API", {
+    insuranceId: "[FILTERED]",
     plan,
   });
 
   return {
     isVerified: true,
-    status: 'ACTIVE',
+    status: "ACTIVE",
     planName: plan,
-    groupNumber: 'GRP-001',
-    effectiveDate: '2025-01-01',
+    groupNumber: "GRP-001",
+    effectiveDate: "2025-01-01",
     terminationDate: null,
     copay: 25,
     deductible: 1500,
     deductibleMet: 750,
     rawResponse: {
-      source: 'stub',
+      source: "stub",
       timestamp: new Date().toISOString(),
-      insuranceId: '[FILTERED]',
+      insuranceId: "[FILTERED]",
     },
   };
 }
@@ -93,7 +93,7 @@ export async function verifyInsurance(
   // Check Redis cache first
   const cached = await redis.get(cacheKey);
   if (cached) {
-    logger.debug('Insurance verification cache hit', { patientId });
+    logger.debug("Insurance verification cache hit", { patientId });
     return JSON.parse(cached) as VerificationResult;
   }
 
@@ -101,7 +101,7 @@ export async function verifyInsurance(
   const result = await callInsuranceAPI(insuranceId, plan);
 
   // Cache result with 24h TTL
-  await redis.set(cacheKey, JSON.stringify(result), 'EX', CACHE_TTL_SECONDS);
+  await redis.set(cacheKey, JSON.stringify(result), "EX", CACHE_TTL_SECONDS);
 
   // Write InsuranceVerification record to database
   const expiresAt = new Date();
@@ -116,7 +116,7 @@ export async function verifyInsurance(
     },
   });
 
-  logger.info('Insurance verification completed', {
+  logger.info("Insurance verification completed", {
     patientId,
     status: result.status,
   });
@@ -148,12 +148,12 @@ export async function checkEligibility(
       coveragePercent: 0,
       estimatedPatientCost: 0,
       preAuthRequired: false,
-      notes: 'No insurance information on file',
+      notes: "No insurance information on file",
     };
   }
 
   // Stub: simulate eligibility check
-  logger.info('Checking eligibility', { patientId, cptCode });
+  logger.info("Checking eligibility", { patientId, cptCode });
 
   return {
     isEligible: true,
@@ -161,6 +161,6 @@ export async function checkEligibility(
     coveragePercent: 80,
     estimatedPatientCost: 50,
     preAuthRequired: false,
-    notes: 'Coverage confirmed under current plan',
+    notes: "Coverage confirmed under current plan",
   };
 }

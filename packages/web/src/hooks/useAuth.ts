@@ -11,6 +11,6 @@
  * - Logout clears all tokens and redirects to login
  */
 
-'use client';
+"use client";
 
-export { useAuth } from '@/components/providers/auth-provider';
+export { useAuth } from "@/components/providers/auth-provider";

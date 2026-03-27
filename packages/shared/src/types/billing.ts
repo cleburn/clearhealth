@@ -9,11 +9,11 @@
 
 /** Insurance claim processing status */
 export enum ClaimStatus {
-  PENDING = 'PENDING',
-  SUBMITTED = 'SUBMITTED',
-  APPROVED = 'APPROVED',
-  DENIED = 'DENIED',
-  PAID = 'PAID',
+  PENDING = "PENDING",
+  SUBMITTED = "SUBMITTED",
+  APPROVED = "APPROVED",
+  DENIED = "DENIED",
+  PAID = "PAID",
 }
 
 /** Full billing record */

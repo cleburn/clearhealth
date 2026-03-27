@@ -8,19 +8,22 @@
  * contact information is never rendered in summary views.
  */
 
-import type { PatientSummary } from '@clearhealth/shared/types/patient';
-import { Card } from '@/components/ui/card';
-import { FileText, Shield } from 'lucide-react';
+import type { PatientSummary } from "@clearhealth/shared/types/patient";
+import { Card } from "@/components/ui/card";
+import { FileText, Shield } from "lucide-react";
 
 interface PatientSummaryCardProps {
   patient: PatientSummary;
   onClick?: () => void;
 }
 
-export function PatientSummaryCard({ patient, onClick }: PatientSummaryCardProps) {
+export function PatientSummaryCard({
+  patient,
+  onClick,
+}: PatientSummaryCardProps) {
   return (
     <Card
-      className={`flex flex-col gap-3 ${onClick ? 'cursor-pointer hover:shadow-md transition-shadow' : ''}`}
+      className={`flex flex-col gap-3 ${onClick ? "cursor-pointer hover:shadow-md transition-shadow" : ""}`}
       onClick={onClick}
     >
       <div className="flex items-center gap-3">
@@ -28,8 +31,12 @@ export function PatientSummaryCard({ patient, onClick }: PatientSummaryCardProps
           <FileText className="h-5 w-5 text-brand-600" />
         </div>
         <div>
-          <p className="text-sm font-medium text-gray-900">MRN: {patient.medicalRecordNumber}</p>
-          <p className="text-xs text-gray-500">Birth Year: {patient.dateOfBirthYear}</p>
+          <p className="text-sm font-medium text-gray-900">
+            MRN: {patient.medicalRecordNumber}
+          </p>
+          <p className="text-xs text-gray-500">
+            Birth Year: {patient.dateOfBirthYear}
+          </p>
         </div>
       </div>
 

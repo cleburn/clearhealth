@@ -8,7 +8,7 @@
  * Password hashes use bcrypt and are never exposed in API responses.
  */
 
-import { UserRole } from '../constants/roles';
+import { UserRole } from "../constants/roles";
 
 /** User record (safe subset — no passwordHash) */
 export interface User {

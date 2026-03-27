@@ -4,23 +4,26 @@
  * Displays an appointment summary with status badge and action buttons.
  */
 
-'use client';
+"use client";
 
-import type { Appointment } from '@clearhealth/shared/types/appointment';
-import { AppointmentStatus } from '@clearhealth/shared/types/appointment';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Calendar, Clock, User } from 'lucide-react';
-import { format } from 'date-fns';
+import type { Appointment } from "@clearhealth/shared/types/appointment";
+import { AppointmentStatus } from "@clearhealth/shared/types/appointment";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Calendar, Clock, User } from "lucide-react";
+import { format } from "date-fns";
 
-const STATUS_VARIANT: Record<AppointmentStatus, 'blue' | 'green' | 'yellow' | 'red' | 'orange' | 'gray'> = {
-  [AppointmentStatus.SCHEDULED]: 'blue',
-  [AppointmentStatus.CONFIRMED]: 'green',
-  [AppointmentStatus.IN_PROGRESS]: 'yellow',
-  [AppointmentStatus.COMPLETED]: 'green',
-  [AppointmentStatus.CANCELLED]: 'red',
-  [AppointmentStatus.NO_SHOW]: 'orange',
+const STATUS_VARIANT: Record<
+  AppointmentStatus,
+  "blue" | "green" | "yellow" | "red" | "orange" | "gray"
+> = {
+  [AppointmentStatus.SCHEDULED]: "blue",
+  [AppointmentStatus.CONFIRMED]: "green",
+  [AppointmentStatus.IN_PROGRESS]: "yellow",
+  [AppointmentStatus.COMPLETED]: "green",
+  [AppointmentStatus.CANCELLED]: "red",
+  [AppointmentStatus.NO_SHOW]: "orange",
 };
 
 interface AppointmentCardProps {
@@ -31,7 +34,13 @@ interface AppointmentCardProps {
   showActions?: boolean;
 }
 
-export function AppointmentCard({ appointment, onCancel, onCheckin, onComplete, showActions = true }: AppointmentCardProps) {
+export function AppointmentCard({
+  appointment,
+  onCancel,
+  onCheckin,
+  onComplete,
+  showActions = true,
+}: AppointmentCardProps) {
   const scheduledDate = new Date(appointment.scheduledAt);
 
   return (
@@ -39,20 +48,22 @@ export function AppointmentCard({ appointment, onCancel, onCheckin, onComplete, 
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-2">
           <Badge variant={STATUS_VARIANT[appointment.status]}>
-            {appointment.status.replace('_', ' ')}
+            {appointment.status.replace("_", " ")}
           </Badge>
-          <Badge variant="gray">{appointment.type.replace('_', ' ')}</Badge>
+          <Badge variant="gray">{appointment.type.replace("_", " ")}</Badge>
         </div>
       </div>
 
       <div className="flex flex-col gap-2 text-sm text-gray-600">
         <div className="flex items-center gap-2">
           <Calendar className="h-4 w-4" />
-          <span>{format(scheduledDate, 'EEEE, MMMM d, yyyy')}</span>
+          <span>{format(scheduledDate, "EEEE, MMMM d, yyyy")}</span>
         </div>
         <div className="flex items-center gap-2">
           <Clock className="h-4 w-4" />
-          <span>{format(scheduledDate, 'h:mm a')} ({appointment.duration} min)</span>
+          <span>
+            {format(scheduledDate, "h:mm a")} ({appointment.duration} min)
+          </span>
         </div>
         <div className="flex items-center gap-2">
           <User className="h-4 w-4" />
@@ -71,16 +82,23 @@ export function AppointmentCard({ appointment, onCancel, onCheckin, onComplete, 
               Check In
             </Button>
           )}
-          {appointment.status === AppointmentStatus.IN_PROGRESS && onComplete && (
-            <Button size="sm" onClick={() => onComplete(appointment.id)}>
-              Complete
-            </Button>
-          )}
-          {(appointment.status === AppointmentStatus.SCHEDULED || appointment.status === AppointmentStatus.CONFIRMED) && onCancel && (
-            <Button size="sm" variant="destructive" onClick={() => onCancel(appointment.id)}>
-              Cancel
-            </Button>
-          )}
+          {appointment.status === AppointmentStatus.IN_PROGRESS &&
+            onComplete && (
+              <Button size="sm" onClick={() => onComplete(appointment.id)}>
+                Complete
+              </Button>
+            )}
+          {(appointment.status === AppointmentStatus.SCHEDULED ||
+            appointment.status === AppointmentStatus.CONFIRMED) &&
+            onCancel && (
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={() => onCancel(appointment.id)}
+              >
+                Cancel
+              </Button>
+            )}
         </div>
       )}
     </Card>

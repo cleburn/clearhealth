@@ -9,23 +9,29 @@
  * - No PII is cached in client-side storage
  */
 
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { patientIntakeSchema, type PatientIntakeFormData } from '@/lib/validators';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Loader2 } from 'lucide-react';
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  patientIntakeSchema,
+  type PatientIntakeFormData,
+} from "@/lib/validators";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Loader2 } from "lucide-react";
 
 interface PatientIntakeFormProps {
   onSubmit: (data: PatientIntakeFormData) => Promise<void>;
   onCancel: () => void;
 }
 
-export function PatientIntakeForm({ onSubmit, onCancel }: PatientIntakeFormProps) {
+export function PatientIntakeForm({
+  onSubmit,
+  onCancel,
+}: PatientIntakeFormProps) {
   const [error, setError] = useState<string | null>(null);
 
   const {
@@ -45,7 +51,9 @@ export function PatientIntakeForm({ onSubmit, onCancel }: PatientIntakeFormProps
       reset();
     } catch (err: unknown) {
       const apiErr = err as { error?: string };
-      setError(apiErr?.error || 'Failed to register patient. Please try again.');
+      setError(
+        apiErr?.error || "Failed to register patient. Please try again.",
+      );
     }
   };
 
@@ -60,23 +68,32 @@ export function PatientIntakeForm({ onSubmit, onCancel }: PatientIntakeFormProps
       <div className="grid grid-cols-2 gap-4">
         <div>
           <Label htmlFor="firstName">First Name</Label>
-          <Input id="firstName" {...register('firstName')} className="mt-1" />
+          <Input id="firstName" {...register("firstName")} className="mt-1" />
           {errors.firstName && (
-            <p className="mt-1 text-xs text-red-600">{errors.firstName.message}</p>
+            <p className="mt-1 text-xs text-red-600">
+              {errors.firstName.message}
+            </p>
           )}
         </div>
         <div>
           <Label htmlFor="lastName">Last Name</Label>
-          <Input id="lastName" {...register('lastName')} className="mt-1" />
+          <Input id="lastName" {...register("lastName")} className="mt-1" />
           {errors.lastName && (
-            <p className="mt-1 text-xs text-red-600">{errors.lastName.message}</p>
+            <p className="mt-1 text-xs text-red-600">
+              {errors.lastName.message}
+            </p>
           )}
         </div>
       </div>
 
       <div>
         <Label htmlFor="email">Email</Label>
-        <Input id="email" type="email" {...register('email')} className="mt-1" />
+        <Input
+          id="email"
+          type="email"
+          {...register("email")}
+          className="mt-1"
+        />
         {errors.email && (
           <p className="mt-1 text-xs text-red-600">{errors.email.message}</p>
         )}
@@ -84,7 +101,13 @@ export function PatientIntakeForm({ onSubmit, onCancel }: PatientIntakeFormProps
 
       <div>
         <Label htmlFor="phone">Phone (optional)</Label>
-        <Input id="phone" type="tel" placeholder="+1 (555) 123-4567" {...register('phone')} className="mt-1" />
+        <Input
+          id="phone"
+          type="tel"
+          placeholder="+1 (555) 123-4567"
+          {...register("phone")}
+          className="mt-1"
+        />
         {errors.phone && (
           <p className="mt-1 text-xs text-red-600">{errors.phone.message}</p>
         )}
@@ -92,9 +115,16 @@ export function PatientIntakeForm({ onSubmit, onCancel }: PatientIntakeFormProps
 
       <div>
         <Label htmlFor="dateOfBirth">Date of Birth</Label>
-        <Input id="dateOfBirth" type="date" {...register('dateOfBirth')} className="mt-1" />
+        <Input
+          id="dateOfBirth"
+          type="date"
+          {...register("dateOfBirth")}
+          className="mt-1"
+        />
         {errors.dateOfBirth && (
-          <p className="mt-1 text-xs text-red-600">{errors.dateOfBirth.message}</p>
+          <p className="mt-1 text-xs text-red-600">
+            {errors.dateOfBirth.message}
+          </p>
         )}
       </div>
 
@@ -103,7 +133,7 @@ export function PatientIntakeForm({ onSubmit, onCancel }: PatientIntakeFormProps
         <Input
           id="ssn"
           placeholder="XXX-XX-XXXX"
-          {...register('ssn')}
+          {...register("ssn")}
           className="mt-1"
           autoComplete="off"
         />
@@ -118,24 +148,43 @@ export function PatientIntakeForm({ onSubmit, onCancel }: PatientIntakeFormProps
       <div className="grid grid-cols-2 gap-4">
         <div>
           <Label htmlFor="insuranceId">Insurance ID (optional)</Label>
-          <Input id="insuranceId" {...register('insuranceId')} className="mt-1" />
+          <Input
+            id="insuranceId"
+            {...register("insuranceId")}
+            className="mt-1"
+          />
         </div>
         <div>
           <Label htmlFor="insurancePlan">Insurance Plan (optional)</Label>
-          <Input id="insurancePlan" {...register('insurancePlan')} className="mt-1" />
+          <Input
+            id="insurancePlan"
+            {...register("insurancePlan")}
+            className="mt-1"
+          />
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
           <Label htmlFor="emergencyContactName">Emergency Contact Name</Label>
-          <Input id="emergencyContactName" {...register('emergencyContactName')} className="mt-1" />
+          <Input
+            id="emergencyContactName"
+            {...register("emergencyContactName")}
+            className="mt-1"
+          />
         </div>
         <div>
           <Label htmlFor="emergencyContactPhone">Emergency Contact Phone</Label>
-          <Input id="emergencyContactPhone" type="tel" {...register('emergencyContactPhone')} className="mt-1" />
+          <Input
+            id="emergencyContactPhone"
+            type="tel"
+            {...register("emergencyContactPhone")}
+            className="mt-1"
+          />
           {errors.emergencyContactPhone && (
-            <p className="mt-1 text-xs text-red-600">{errors.emergencyContactPhone.message}</p>
+            <p className="mt-1 text-xs text-red-600">
+              {errors.emergencyContactPhone.message}
+            </p>
           )}
         </div>
       </div>
@@ -151,7 +200,7 @@ export function PatientIntakeForm({ onSubmit, onCancel }: PatientIntakeFormProps
               Registering...
             </>
           ) : (
-            'Register Patient'
+            "Register Patient"
           )}
         </Button>
       </div>

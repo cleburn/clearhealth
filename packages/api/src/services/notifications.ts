@@ -12,8 +12,8 @@
  * - Notification content must not include full PII (use first name only)
  */
 
-import { prisma } from '../lib/prisma';
-import { logger } from '../utils/logger';
+import { prisma } from "../lib/prisma";
+import { logger } from "../utils/logger";
 
 /**
  * Sends appointment reminder via email and SMS.
@@ -24,7 +24,9 @@ import { logger } from '../utils/logger';
  *
  * @param appointmentId - The appointment to send a reminder for
  */
-export async function sendAppointmentReminder(appointmentId: string): Promise<void> {
+export async function sendAppointmentReminder(
+  appointmentId: string,
+): Promise<void> {
   // Fetch appointment details with patient and doctor info FRESH
   const appointment = await prisma.appointment.findUnique({
     where: { id: appointmentId },
@@ -47,7 +49,7 @@ export async function sendAppointmentReminder(appointmentId: string): Promise<vo
   });
 
   if (!appointment) {
-    logger.warn('Appointment not found for reminder', { appointmentId });
+    logger.warn("Appointment not found for reminder", { appointmentId });
     return;
   }
 
@@ -55,12 +57,12 @@ export async function sendAppointmentReminder(appointmentId: string): Promise<vo
   const doctorName = `Dr. ${appointment.doctor.user.lastName}`;
 
   // Stub: log the notification instead of actually sending
-  logger.info('Appointment reminder queued', {
+  logger.info("Appointment reminder queued", {
     appointmentId,
     patientFirstName,
     doctorName,
     scheduledAt: appointment.scheduledAt.toISOString(),
-    type: 'reminder',
+    type: "reminder",
   });
 }
 
@@ -69,7 +71,9 @@ export async function sendAppointmentReminder(appointmentId: string): Promise<vo
  *
  * @param appointmentId - The newly booked appointment
  */
-export async function sendAppointmentConfirmation(appointmentId: string): Promise<void> {
+export async function sendAppointmentConfirmation(
+  appointmentId: string,
+): Promise<void> {
   const appointment = await prisma.appointment.findUnique({
     where: { id: appointmentId },
     include: {
@@ -91,19 +95,19 @@ export async function sendAppointmentConfirmation(appointmentId: string): Promis
   });
 
   if (!appointment) {
-    logger.warn('Appointment not found for confirmation', { appointmentId });
+    logger.warn("Appointment not found for confirmation", { appointmentId });
     return;
   }
 
   const patientFirstName = appointment.patient.user.firstName;
   const doctorName = `Dr. ${appointment.doctor.user.lastName}`;
 
-  logger.info('Appointment confirmation queued', {
+  logger.info("Appointment confirmation queued", {
     appointmentId,
     patientFirstName,
     doctorName,
     scheduledAt: appointment.scheduledAt.toISOString(),
-    type: 'confirmation',
+    type: "confirmation",
   });
 }
 
@@ -115,7 +119,10 @@ export async function sendAppointmentConfirmation(appointmentId: string): Promis
  *
  * @security Reset link must use HTTPS. Token is single-use and time-limited.
  */
-export async function sendPasswordReset(userId: string, _token: string): Promise<void> {
+export async function sendPasswordReset(
+  userId: string,
+  _token: string,
+): Promise<void> {
   // Fetch user email fresh from database
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -123,18 +130,19 @@ export async function sendPasswordReset(userId: string, _token: string): Promise
   });
 
   if (!user) {
-    logger.warn('User not found for password reset', { userId });
+    logger.warn("User not found for password reset", { userId });
     return;
   }
 
   // Build reset URL (do NOT log the token)
-  const frontendUrl = process.env.FRONTEND_URL || 'https://app.clearhealth.local';
+  const frontendUrl =
+    process.env.FRONTEND_URL || "https://app.clearhealth.local";
   const _resetUrl = `${frontendUrl}/reset-password?token=***`;
 
   // Stub: log the action without the token or full email
-  logger.info('Password reset email queued', {
+  logger.info("Password reset email queued", {
     userId,
     recipientFirstName: user.firstName,
-    type: 'password_reset',
+    type: "password_reset",
   });
 }

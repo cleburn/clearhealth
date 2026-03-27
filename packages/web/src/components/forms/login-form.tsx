@@ -9,16 +9,16 @@
  * - Form submission uses HTTPS only
  */
 
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { loginSchema, type LoginFormData } from '@/lib/validators';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Loader2 } from 'lucide-react';
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { loginSchema, type LoginFormData } from "@/lib/validators";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Loader2 } from "lucide-react";
 
 interface LoginFormProps {
   onSubmit: (data: LoginFormData) => Promise<void>;
@@ -41,7 +41,7 @@ export function LoginForm({ onSubmit }: LoginFormProps) {
       await onSubmit(data);
     } catch (err: unknown) {
       const apiErr = err as { error?: string };
-      setError(apiErr?.error || 'Invalid email or password. Please try again.');
+      setError(apiErr?.error || "Invalid email or password. Please try again.");
     }
   };
 
@@ -60,7 +60,7 @@ export function LoginForm({ onSubmit }: LoginFormProps) {
             id="email"
             type="email"
             autoComplete="email"
-            {...register('email')}
+            {...register("email")}
             className="mt-1"
           />
           {errors.email && (
@@ -74,11 +74,13 @@ export function LoginForm({ onSubmit }: LoginFormProps) {
             id="password"
             type="password"
             autoComplete="current-password"
-            {...register('password')}
+            {...register("password")}
             className="mt-1"
           />
           {errors.password && (
-            <p className="mt-1 text-xs text-red-600">{errors.password.message}</p>
+            <p className="mt-1 text-xs text-red-600">
+              {errors.password.message}
+            </p>
           )}
         </div>
       </div>
@@ -90,12 +92,15 @@ export function LoginForm({ onSubmit }: LoginFormProps) {
             Signing in...
           </>
         ) : (
-          'Sign in'
+          "Sign in"
         )}
       </Button>
 
       <div className="text-center">
-        <a href="/forgot-password" className="text-sm text-brand-600 hover:text-brand-500">
+        <a
+          href="/forgot-password"
+          className="text-sm text-brand-600 hover:text-brand-500"
+        >
           Forgot your password?
         </a>
       </div>

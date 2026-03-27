@@ -12,13 +12,13 @@
  *   service must not persist them beyond a single delivery attempt
  */
 
-import type { AppointmentType } from '@clearhealth/shared/types/appointment';
+import type { AppointmentType } from "@clearhealth/shared/types/appointment";
 
 /** Template identifiers for notification types */
 export enum NotificationTemplateId {
-  APPOINTMENT_REMINDER = 'appointment_reminder',
-  APPOINTMENT_CONFIRMATION = 'appointment_confirmation',
-  APPOINTMENT_CANCELLATION = 'appointment_cancellation',
+  APPOINTMENT_REMINDER = "appointment_reminder",
+  APPOINTMENT_CONFIRMATION = "appointment_confirmation",
+  APPOINTMENT_CANCELLATION = "appointment_cancellation",
 }
 
 /** Display-safe template variables — no raw PII */
@@ -67,10 +67,10 @@ export interface AppointmentNotificationInput {
 }
 
 const APPOINTMENT_TYPE_LABELS: Record<string, string> = {
-  INITIAL: 'Initial Visit',
-  FOLLOW_UP: 'Follow-Up',
-  URGENT: 'Urgent',
-  TELEHEALTH: 'Telehealth',
+  INITIAL: "Initial Visit",
+  FOLLOW_UP: "Follow-Up",
+  URGENT: "Urgent",
+  TELEHEALTH: "Telehealth",
 };
 
 /**
@@ -78,10 +78,10 @@ const APPOINTMENT_TYPE_LABELS: Record<string, string> = {
  * Uses "Month Day, Year" format (e.g., "March 15, 2026").
  */
 function formatDisplayDate(date: Date): string {
-  return date.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
+  return date.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
   });
 }
 
@@ -90,9 +90,9 @@ function formatDisplayDate(date: Date): string {
  * Uses 12-hour format with AM/PM (e.g., "2:30 PM").
  */
 function formatDisplayTime(date: Date): string {
-  return date.toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
+  return date.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
     hour12: true,
   });
 }
@@ -130,7 +130,8 @@ export function buildNotificationPayload(
       doctorDisplayName: `Dr. ${appointment.doctor.user.lastName}`,
       appointmentDate: formatDisplayDate(appointment.scheduledAt),
       appointmentTime: formatDisplayTime(appointment.scheduledAt),
-      appointmentType: APPOINTMENT_TYPE_LABELS[appointment.type] ?? appointment.type,
+      appointmentType:
+        APPOINTMENT_TYPE_LABELS[appointment.type] ?? appointment.type,
       durationMinutes: appointment.duration,
     },
   };

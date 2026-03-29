@@ -2,6 +2,8 @@
 
 Multi-tenant appointment management platform for small clinic networks. Built for healthcare organizations that need secure, HIPAA-compliant scheduling, patient records, and billing management.
 
+![CI](https://github.com/cleburn/clearhealth/actions/workflows/ci.yml/badge.svg)
+
 ## Overview
 
 ClearHealth enables clinics to manage their entire patient workflow:

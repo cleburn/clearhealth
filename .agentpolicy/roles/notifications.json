@@ -1,6 +1,6 @@
 {
-  "$schema": "https://aegis.dev/schema/role.v0.1.0.json",
-  "version": "0.1.0",
+  "$schema": "https://aegis.dev/schema/role.schema.json",
+  "version": "0.3.0",
   "role": {
     "name": "notifications",
     "purpose": "Owns packages/notifications/. Delivery-only service for SMS and email appointment reminders. Receives pre-tokenized payloads from the backend containing delivery address, template ID, and display-safe template variables. Never accesses patient records, never receives patient IDs or raw PII."

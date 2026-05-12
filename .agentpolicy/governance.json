@@ -1,6 +1,6 @@
 {
-  "$schema": "https://aegis.dev/schema/governance.v0.1.0.json",
-  "version": "0.1.0",
+  "$schema": "https://aegis.dev/schema/governance.schema.json",
+  "version": "0.3.0",
   "autonomy": {
     "default_level": "advisory",
     "levels": {

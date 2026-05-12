@@ -1,6 +1,6 @@
 {
-  "$schema": "https://aegis.dev/schema/constitution.v0.1.0.json",
-  "version": "0.1.0",
+  "$schema": "https://aegis.dev/schema/constitution.schema.json",
+  "version": "0.3.0",
   "project": {
     "name": "ClearHealth",
     "purpose": "Multi-tenant HIPAA-compliant appointment platform. Monorepo with packages/api, packages/web, packages/shared, packages/notifications, Prisma schema, infrastructure, and docs.",
@@ -18,8 +18,7 @@
       },
       {
         "path": "packages/shared",
-        "purpose": "Shared contract layer between frontend, backend, and notifications. Contains TypeScript types, Zod schemas, and shared interfaces including notification payload interfaces.",
-        "owner": null
+        "purpose": "Shared contract layer between frontend, backend, and notifications. Contains TypeScript types, Zod schemas, and shared interfaces including notification payload interfaces."
       },
       {
         "path": "packages/notifications",
@@ -43,8 +42,7 @@
       },
       {
         "path": "docs",
-        "purpose": "Project documentation, API reference, architecture docs.",
-        "owner": null
+        "purpose": "Project documentation, API reference, architecture docs."
       }
     ],
     "required_artifacts": [
@@ -86,14 +84,38 @@
       "npm"
     ],
     "key_libraries": [
-      "Zod",
-      "Tailwind CSS",
-      "shadcn/ui",
-      "Vitest",
-      "Supertest",
-      "Winston",
-      "jsonwebtoken",
-      "bcrypt"
+      {
+        "name": "Zod",
+        "purpose": "Runtime validation at API boundaries and form inputs"
+      },
+      {
+        "name": "Tailwind CSS",
+        "purpose": "Utility-first styling for the Next.js frontend"
+      },
+      {
+        "name": "shadcn/ui",
+        "purpose": "Component library foundation for the design system"
+      },
+      {
+        "name": "Vitest",
+        "purpose": "Unit and integration test runner across all packages"
+      },
+      {
+        "name": "Supertest",
+        "purpose": "HTTP assertions for API endpoint tests"
+      },
+      {
+        "name": "Winston",
+        "purpose": "Structured logging with PII redaction"
+      },
+      {
+        "name": "jsonwebtoken",
+        "purpose": "JWT signing and verification for auth tokens"
+      },
+      {
+        "name": "bcrypt",
+        "purpose": "Password hashing for user credentials"
+      }
     ]
   },
   "principles": [
@@ -143,9 +165,9 @@
   "build_commands": {
     "install": "npm install",
     "build": "npm run build",
-    "test": "npx vitest run",
-    "lint": "npx eslint .",
-    "typecheck": "npx tsc --noEmit",
+    "test": "npm run test",
+    "lint": "npm run lint",
+    "typecheck": "npm run typecheck",
     "dev": "npm run dev"
   },
   "sensitivity_tiers": [

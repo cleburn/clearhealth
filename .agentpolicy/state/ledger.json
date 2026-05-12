@@ -1,15 +1,15 @@
 {
-  "$schema": "https://aegis.dev/schema/ledger.v0.1.0.json",
-  "version": "0.1.0",
+  "$schema": "https://aegis.dev/schema/ledger.schema.json",
+  "version": "0.3.0",
   "sequence": 5,
   "tasks": [
     {
-      "id": 1,
-      "timestamp": "2026-03-09T12:00:00Z",
-      "agent_role": "database",
-      "action": "SEED_IMPLEMENTATION",
-      "description": "Implemented full seed script with synthetic data: 2 tenants, 2 admins, 4 doctors, 8 patients, ~31 appointments, visit notes for completed appointments, billing records for completed appointments, 8 insurance verifications, and sample audit log entries. All data is synthetic. SSNs use placeholder encryption format (encrypted:iv:tag:cipher). Passwords use bcrypt-style placeholder hashes.",
-      "affected_paths": [
+      "id": "1",
+      "created_at": "2026-03-09T12:00:00Z",
+      "assigned_role": "database",
+      "status": "completed",
+      "summary": "SEED_IMPLEMENTATION — Implemented full seed script with synthetic data: 2 tenants, 2 admins, 4 doctors, 8 patients, ~31 appointments, visit notes for completed appointments, billing records for completed appointments, 8 insurance verifications, and sample audit log entries. All data is synthetic. SSNs use placeholder encryption format (encrypted:iv:tag:cipher). Passwords use bcrypt-style placeholder hashes.",
+      "files_touched": [
         "prisma/seed.ts"
       ],
       "requires_attention_from": [
@@ -18,12 +18,12 @@
       "security": false
     },
     {
-      "id": 2,
-      "timestamp": "2026-03-09T12:05:00Z",
-      "agent_role": "backend",
-      "action": "FULL_API_IMPLEMENTATION",
-      "description": "Implemented all API endpoints, middleware (auth JWT verify, audit logging, PII guard response interception), services (AES-256-GCM encryption, insurance verification with Redis cache, notification stubs), and utilities (Winston logger with PII redaction, Prisma singleton, Redis singleton). All routes are tenant-scoped, audit-logged, and PII-filtered. Zod validation on all inputs. Typed error handling. Graceful shutdown. New files: packages/api/src/lib/prisma.ts, packages/api/src/lib/redis.ts.",
-      "affected_paths": [
+      "id": "2",
+      "created_at": "2026-03-09T12:05:00Z",
+      "assigned_role": "backend",
+      "status": "completed",
+      "summary": "FULL_API_IMPLEMENTATION — Implemented all API endpoints, middleware (auth JWT verify, audit logging, PII guard response interception), services (AES-256-GCM encryption, insurance verification with Redis cache, notification stubs), and utilities (Winston logger with PII redaction, Prisma singleton, Redis singleton). All routes are tenant-scoped, audit-logged, and PII-filtered. Zod validation on all inputs. Typed error handling. Graceful shutdown. New files: packages/api/src/lib/prisma.ts, packages/api/src/lib/redis.ts.",
+      "files_touched": [
         "packages/api/src/utils/logger.ts",
         "packages/api/src/middleware/pii-guard.ts",
         "packages/api/src/middleware/audit.ts",
@@ -46,12 +46,12 @@
       "security": true
     },
     {
-      "id": 3,
-      "timestamp": "2026-03-09T12:10:00Z",
-      "agent_role": "devops",
-      "action": "INFRASTRUCTURE_IMPLEMENTATION",
-      "description": "Implemented CI/CD pipeline (5-gate quality checks: lint, typecheck, test, security-audit, pii-scan), enhanced Dockerfile with Prisma generate and healthcheck, database backup and key rotation scripts, Terraform AWS infrastructure config, .env.example.",
-      "affected_paths": [
+      "id": "3",
+      "created_at": "2026-03-09T12:10:00Z",
+      "assigned_role": "devops",
+      "status": "completed",
+      "summary": "INFRASTRUCTURE_IMPLEMENTATION — Implemented CI/CD pipeline (5-gate quality checks: lint, typecheck, test, security-audit, pii-scan), enhanced Dockerfile with Prisma generate and healthcheck, database backup and key rotation scripts, Terraform AWS infrastructure config, .env.example.",
+      "files_touched": [
         ".github/workflows/ci.yml",
         ".github/workflows/deploy.yml",
         "Dockerfile",
@@ -69,12 +69,12 @@
       "security": true
     },
     {
-      "id": 4,
-      "timestamp": "2026-03-09T12:15:00Z",
-      "agent_role": "frontend",
-      "action": "FULL_UI_IMPLEMENTATION",
-      "description": "Implemented all web UI: API client with JWT auth flow (memory-only tokens, auto-refresh), AuthProvider context, 10 shadcn/ui components (button, input, card, badge, dialog, select, toast, table, label, tabs), 3 form components (login, appointment booking, patient intake), 5 data display components (stats card, appointment card, patient summary, visit note, billing row), all 8 pages (login, dashboard with role-specific views, appointments with CRUD, records with SOAP notes, admin overview, billing management, staff management). No PHI in client state. No localStorage/cookies for patient data.",
-      "affected_paths": [
+      "id": "4",
+      "created_at": "2026-03-09T12:15:00Z",
+      "assigned_role": "frontend",
+      "status": "completed",
+      "summary": "FULL_UI_IMPLEMENTATION — Implemented all web UI: API client with JWT auth flow (memory-only tokens, auto-refresh), AuthProvider context, 10 shadcn/ui components (button, input, card, badge, dialog, select, toast, table, label, tabs), 3 form components (login, appointment booking, patient intake), 5 data display components (stats card, appointment card, patient summary, visit note, billing row), all 8 pages (login, dashboard with role-specific views, appointments with CRUD, records with SOAP notes, admin overview, billing management, staff management). No PHI in client state. No localStorage/cookies for patient data.",
+      "files_touched": [
         "packages/web/**"
       ],
       "requires_attention_from": [
@@ -83,12 +83,12 @@
       "security": false
     },
     {
-      "id": 5,
-      "timestamp": "2026-03-09T12:20:00Z",
-      "agent_role": "qa",
-      "action": "TEST_SUITE_IMPLEMENTATION",
-      "description": "Wrote 9 comprehensive test suites (2,260 lines): PII guard middleware (masking SSN/email, recursive field scrubbing, res.json interception), auth middleware (JWT verification, role guards), audit middleware (path parsing, async log writing), encryption service (AES-256-GCM round-trip, tamper detection, HMAC-SHA256 hashing), patient routes (CRUD, tenant isolation, SSN masking, role restrictions), appointment routes (CRUD, status transitions, availability, visit note requirements), auth routes (login/refresh/logout, anti-enumeration, account lockout), billing routes (tenant-scoped, claim validation, reporting), RBAC permissions (full matrix validation, scope checks, hierarchy). All tests use synthetic data only.",
-      "affected_paths": [
+      "id": "5",
+      "created_at": "2026-03-09T12:20:00Z",
+      "assigned_role": "qa",
+      "status": "completed",
+      "summary": "TEST_SUITE_IMPLEMENTATION — Wrote 9 comprehensive test suites (2,260 lines): PII guard middleware (masking SSN/email, recursive field scrubbing, res.json interception), auth middleware (JWT verification, role guards), audit middleware (path parsing, async log writing), encryption service (AES-256-GCM round-trip, tamper detection, HMAC-SHA256 hashing), patient routes (CRUD, tenant isolation, SSN masking, role restrictions), appointment routes (CRUD, status transitions, availability, visit note requirements), auth routes (login/refresh/logout, anti-enumeration, account lockout), billing routes (tenant-scoped, claim validation, reporting), RBAC permissions (full matrix validation, scope checks, hierarchy). All tests use synthetic data only.",
+      "files_touched": [
         "packages/api/src/middleware/__tests__/pii-guard.test.ts",
         "packages/api/src/middleware/__tests__/auth.test.ts",
         "packages/api/src/middleware/__tests__/audit.test.ts",
@@ -132,11 +132,11 @@
     ],
     "required_fields": [
       "id",
-      "timestamp",
-      "agent_role",
-      "action",
-      "description",
-      "affected_paths",
+      "created_at",
+      "assigned_role",
+      "status",
+      "summary",
+      "files_touched",
       "requires_attention_from"
     ],
     "rules": [

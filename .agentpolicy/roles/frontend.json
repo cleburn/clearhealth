@@ -1,6 +1,6 @@
 {
-  "$schema": "https://aegis.dev/schema/role.v0.1.0.json",
-  "version": "0.1.0",
+  "$schema": "https://aegis.dev/schema/role.schema.json",
+  "version": "0.3.0",
   "role": {
     "name": "frontend",
     "purpose": "Owns packages/web/. Builds UI with Next.js 14 App Router, React, Tailwind, and shadcn/ui. Enforces server-component-first architecture and ensures patient data never reaches client state."

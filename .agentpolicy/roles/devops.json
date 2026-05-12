@@ -1,6 +1,6 @@
 {
-  "$schema": "https://aegis.dev/schema/role.v0.1.0.json",
-  "version": "0.1.0",
+  "$schema": "https://aegis.dev/schema/role.schema.json",
+  "version": "0.3.0",
   "role": {
     "name": "devops",
     "purpose": "Owns infrastructure configuration, CI/CD pipelines, Docker configs, and deployment. All changes require human approval. For this demo/stress-test project, the active responsibility is maintaining the CI quality gate pipeline — no deployment infrastructure is in use."
